@@ -131,6 +131,7 @@ endif()
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
   include("/home/sirab/SIRA-Formation-Control/catkin_ws/build/gtest/cmake_install.cmake")
+  include("/home/sirab/SIRA-Formation-Control/catkin_ws/build/multiple-object-tracking-lidar/cmake_install.cmake")
 
 endif()
 

@@ -1,0 +1,6 @@
+[submodule "multiple-object-tracking-lidar"]
+	path = multiple-object-tracking-lidar
+	url = git@github.com:praveen-palanisamy/multiple-object-tracking-lidar.git
+[submodule "catkin_ws/src/multiple-object-tracking-lidar"]
+	path = catkin_ws/src/multiple-object-tracking-lidar
+	url = git@github.com:praveen-palanisamy/multiple-object-tracking-lidar.git
