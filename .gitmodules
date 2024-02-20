@@ -1,3 +1,0 @@
-[submodule "obstacle_detector"]
-	path = obstacle_detector
-	url = git@github.com:e7nelson/obstacle_detector.git
