@@ -1,0 +1,3 @@
+[submodule "catkin_ws/src/obstacle_detector"]
+	path = catkin_ws/src/obstacle_detector
+	url = git@github.com:e7nelson/obstacle_detector.git
