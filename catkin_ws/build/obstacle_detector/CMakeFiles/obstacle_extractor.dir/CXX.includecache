@@ -143,6 +143,8 @@ obstacle_detector/utilities/figure_fitting.h
 /home/sirab/SIRA-Formation-Control/catkin_ws/src/obstacle_detector/src/obstacle_detector/utilities/figure_fitting.h
 obstacle_detector/utilities/math_utilities.h
 /home/sirab/SIRA-Formation-Control/catkin_ws/src/obstacle_detector/src/obstacle_detector/utilities/math_utilities.h
+ros/console.h
+-
 
 /opt/ros/melodic/include/geometry_msgs/Point.h
 string
