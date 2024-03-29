@@ -2,4 +2,4 @@
 source_root_dir = '/home/sirab/SIRA-Formation-Control/catkin_ws/src'
 whitelisted_packages = ''.split(';') if '' != '' else []
 blacklisted_packages = ''.split(';') if '' != '' else []
-underlay_workspaces = '/home/sirab/sira_b_catkin_ws/devel;/opt/ros/melodic'.split(';') if '/home/sirab/sira_b_catkin_ws/devel;/opt/ros/melodic' != '' else []
+underlay_workspaces = '/home/sirab/SIRA-Formation-Control/catkin_ws/devel;/home/sirab/sira_b_catkin_ws/devel;/opt/ros/melodic'.split(';') if '/home/sirab/SIRA-Formation-Control/catkin_ws/devel;/home/sirab/sira_b_catkin_ws/devel;/opt/ros/melodic' != '' else []
