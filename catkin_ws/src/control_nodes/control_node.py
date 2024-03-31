@@ -16,10 +16,12 @@ class followerPosControl():
     def __init__(self):
         rospy.init_node('follower_control_node',anonymous=True)
         #set initialization variables
-        self.cur_pos = np.zeros([3,1])
-        self.leader_pos = np.zeros([3,1])
-        self.ld = 5
-        self.psid = np.pi
+        self.xd = 0
+        self.yd = 1
+        self.psid = 0
+        self.k1 = 1
+        self.k2 = 2
+        self.theta = np.pi/2
 
         self.tfBuffer = tf2_ros.Buffer()
         self.tfListener = tf2_ros.TransformListener(self.tfBuffer)
@@ -27,53 +29,63 @@ class followerPosControl():
         #Subscribed messages
         self.name = socket.gethostname()
         if self.name == 'sirab-T15':
-            self.name = 'sira_b'
-            self.leader = 'sira_r'
+            self.follower = 'sirab'
+            self.leader = 'sirar'
             self.leader_frame = 'ridgeRframe_from_marker_left'
             self.follower_frame = 'ridgeBframe'
         else:
-            self.name = 'sira_r'
-            self.leader = 'sira_b'
+            self.follower = 'sirar'
+            self.leader = 'sirab'
             self.leader_frame = 'ridgeBframe_from_marker_right'
             self.follower_frame = 'ridgeRframe'
-
-        #self.leader_vel = rospy.Subscriber('/' + self.leader + '/ridgeback/vel_feedback',std_msgs.msg.String,
-                                                 #self.taskmodecallback,
-                                                 #queue_size=1)
+        time.sleep(2)
+        self.leader_vel = rospy.Subscriber('/'+self.follower+'/ridgeback/vel_feedback',geometry_msgs.msg.Twist,
+                                                 self.calcVel,queue_size=1)
         #Published messages
-        #self.sira_vel = rospy.Publisher('/'+self.name+'/sira_follower_vel', geometry_msgs.msg.Twist,queue_size=1)
-        frames_dict = yaml.safe_load(self.tfBuffer.all_frames_as_yaml())
-        frames_list = list(frames_dict.keys())
-
-        print(self.calcRelPosition())
+        self.follower_vel = rospy.Publisher('/'+self.follower+'/ridgeback/ridgeback_velocity_controller/cmd_vel', geometry_msgs.msg.Twist,queue_size=1)
+        self.cur_pos = np.zeros([3,1])
+        self.leader_pos = np.zeros([3,1])
 
     def calcRelPosition(self):
-        time.sleep(10)
-        self.T_human2ee = self.tfBuffer.lookup_transform(self.leader_frame , self.follower_frame,rospy.Time())
-        return self.T_human2ee
-
-    def leaderPosUpdateCallback(self,new_leader_pos):
-        self.leader_pos[0] = new_leader_pos.pose.position.x
-        self.leader_pos[1] = new_leader_pos.pose.position.y
-        self.leader_pos[2] = new_leader_pos.pose.position.z
+        self.pos = self.tfBuffer.lookup_transform(self.leader_frame,self.follower_frame,rospy.Time())
+        self.x = self.pos.transform.translation.x
+        self.y = self.pos.transform.translation.y
+        self.psi = self.pos.transform.rotation.z
+        #self.theta = self.calcAngle(self.x,self.y,self.theta)
+        self.theta = np.arctan2(self.x,self.y)
 
     def calcAngle(self,x,y,ang_in):
-        angle = np.atan2(x,y)
+        angle = np.arctan2(x,y)
         if abs(angle-ang_in) > 5:
             if angle > ang_in:
                 self.theta = angle-2*np.pi
             else:
                 self.theta = angle+2*np.pi
 
-    def calcVel(self):
-        error = np.array([[self.k1*(self.ld-self.l)],[self.k2*(self.thetad-self.theta)]])
+    def calcVel(self,leader_velocity):
+        self.calcRelPosition()
+        self.leader_vel = np.zeros((3,1))
+        #self.leader_vel[0] = np.sqrt(leader_velocity.linear.x**2 + leader_velocity.linear.y**2) #uncomment when testing with sirar
+        #self.leader_vel[1] = leader_velocity.angular.z
+        #print('relative position: {}, {}'.format(self.l,self.theta))
+
+        error = np.array([self.k1*(self.xd-self.x),self.k1*(self.yd-self.y),self.k2*(self.psid-self.psi)]).reshape(3,1)
         uj = error - self.leader_vel
-        self.sira_vel = np.dot(np.array([[np.cos(self.theta), 0],[np.sin(self.theta),0],[0, 1]]), uj)
-
-
-
-
-
+        R = np.array([[np.cos(self.theta),np.sin(self.theta), 0],[-np.sin(self.theta),np.cos(self.theta),0],[0,0,1]])
+        self.sira_vel = np.dot(R, uj)
+        self.sira_vel[2] = -1 * self.sira_vel[2]
+        self.publishVel()
+    
+    def publishVel(self):
+        publish_vel = geometry_msgs.msg.Twist()
+        publish_vel.linear.x = self.sira_vel[0][0]
+        publish_vel.linear.y = self.sira_vel[1][0]
+        publish_vel.linear.z = 0
+        publish_vel.angular.x = 0
+        publish_vel.angular.y = 0
+        publish_vel.angular.z = self.sira_vel[2][0]
+        #self.follower_vel.publish(publish_vel)
+        print(publish_vel)
         #Auxiliary Functions
 if __name__=='__main__':
     followerPosControl = followerPosControl()
