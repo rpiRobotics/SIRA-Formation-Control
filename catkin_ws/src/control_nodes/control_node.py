@@ -17,11 +17,15 @@ class followerPosControl():
         rospy.init_node('follower_control_node',anonymous=True)
         #set initialization variables
         self.xd = 0
-        self.yd = 1
+        self.yd = 1.5
         self.psid = 0
         self.k1 = 1
         self.k2 = 2
         self.theta = np.pi/2
+
+        # to publish at proper frequency
+        self.last_publish_vel = geometry_msgs.msg.Twist()
+        self.time_out = 0.008
 
         self.tfBuffer = tf2_ros.Buffer()
         self.tfListener = tf2_ros.TransformListener(self.tfBuffer)
@@ -45,6 +49,9 @@ class followerPosControl():
         self.follower_vel = rospy.Publisher('/'+self.follower+'/ridgeback/ridgeback_velocity_controller/cmd_vel', geometry_msgs.msg.Twist,queue_size=1)
         self.cur_pos = np.zeros([3,1])
         self.leader_pos = np.zeros([3,1])
+
+        # setup callback to repeat command at desired frequency
+        rospy.Timer(rospy.Duration(self.time_out), self.cmd_vel_timeout_callback)
 
     def calcRelPosition(self):
         self.pos = self.tfBuffer.lookup_transform(self.leader_frame,self.follower_frame,rospy.Time())
@@ -71,21 +78,30 @@ class followerPosControl():
 
         error = np.array([self.k1*(self.xd-self.x),self.k1*(self.yd-self.y),self.k2*(self.psid-self.psi)]).reshape(3,1)
         uj = error - self.leader_vel
-        R = np.array([[np.cos(self.theta),np.sin(self.theta), 0],[-np.sin(self.theta),np.cos(self.theta),0],[0,0,1]])
+        R = np.array([[np.cos(self.theta),-np.sin(self.theta), 0],[np.sin(self.theta),np.cos(self.theta),0],[0,0,1]])
         self.sira_vel = np.dot(R, uj)
         self.sira_vel[2] = -1 * self.sira_vel[2]
         self.publishVel()
     
     def publishVel(self):
         publish_vel = geometry_msgs.msg.Twist()
-        publish_vel.linear.x = self.sira_vel[0][0]
-        publish_vel.linear.y = self.sira_vel[1][0]
+        publish_vel.linear.x = self.sira_vel[0][0] / 10
+        publish_vel.linear.y = self.sira_vel[1][0] / 10
         publish_vel.linear.z = 0
         publish_vel.angular.x = 0
         publish_vel.angular.y = 0
-        publish_vel.angular.z = self.sira_vel[2][0]
-        #self.follower_vel.publish(publish_vel)
+        publish_vel.angular.z = self.sira_vel[2][0] / 10
+        # self.follower_vel.publish(publish_vel)
         print(publish_vel)
+
+        # store last state
+        self.last_publish_vel = publish_vel
+
+    # publish desired velocity on proper frequency
+    def cmd_vel_timeout_callback(self):
+        print("cmd vel timeout!")
+        self.follower_vel.publish(self.last_publish_vel)
+
         #Auxiliary Functions
 if __name__=='__main__':
     followerPosControl = followerPosControl()
