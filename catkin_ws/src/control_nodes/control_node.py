@@ -95,8 +95,15 @@ class followerPosControl():
         if self.obs_dist < self.avoidance_length:
             repel_force = 0.5 * self.repel_strength * (1/self.obs_dist - 1/self.avoidance_length)**2
             print(repel_force)
-            self.sira_vel[0] = self.sira_vel[0]-repel_force*np.sin(self.obs_angle)
-            self.sira_vel[1] = self.sira_vel[1]-repel_force*np.cos(self.obs_angle)
+            if self.sira_vel[0] < 0:
+                self.sira_vel[0] = self.sira_vel[0]+repel_force*np.sin(self.obs_angle)
+            else:
+                self.sira_vel[0] = self.sira_vel[0]-repel_force*np.sin(self.obs_angle)
+            if self.sira_vel[1] < 0:
+                self.sira_vel[1] = self.sira_vel[1]+repel_force*np.cos(self.obs_angle)
+            else:
+                self.sira_vel[1] = self.sira_vel[1]-repel_force*np.cos(self.obs_angle)
+            
         
     
     def publishVel(self):
