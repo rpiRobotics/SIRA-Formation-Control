@@ -1,2 +1,2 @@
 
--DCATKIN_DEVEL_PREFIX=/home/sirab/SIRA-Formation-Control/catkin_ws/devel -DCMAKE_INSTALL_PREFIX=/home/sirab/SIRA-Formation-Control/catkin_ws/install -G Unix Makefiles
+-DCATKIN_DEVEL_PREFIX=/home/sirar/SIRA-Formation-Control/catkin_ws/devel -DCMAKE_INSTALL_PREFIX=/home/sirar/SIRA-Formation-Control/catkin_ws/install -G Unix Makefiles

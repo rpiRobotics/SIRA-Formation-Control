@@ -7,7 +7,6 @@
 # new environment variables
 
 # modified environment variables
-export CMAKE_PREFIX_PATH="/home/sirab/SIRA-Formation-Control/catkin_ws/devel:$CMAKE_PREFIX_PATH"
-export PWD='/home/sirab/SIRA-Formation-Control/catkin_ws/build'
-export ROSLISP_PACKAGE_DIRECTORIES="/home/sirab/SIRA-Formation-Control/catkin_ws/devel/share/common-lisp:$ROSLISP_PACKAGE_DIRECTORIES"
-export ROS_PACKAGE_PATH="/home/sirab/SIRA-Formation-Control/catkin_ws/src:$ROS_PACKAGE_PATH"
+export LD_LIBRARY_PATH='/home/sirar/sira_r_catkin_ws/devel/lib:/home/sirar/vision_catkin_ws/devel/lib:/opt/ros/melodic/lib'
+export PKG_CONFIG_PATH='/home/sirar/sira_r_catkin_ws/devel/lib/pkgconfig:/home/sirar/vision_catkin_ws/devel/lib/pkgconfig:/opt/ros/melodic/lib/pkgconfig'
+export PWD='/home/sirar/SIRA-Formation-Control/catkin_ws/build'
