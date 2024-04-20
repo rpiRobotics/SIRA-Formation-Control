@@ -1,38 +1,55 @@
 #!/usr/bin/env python
 
 import rospy
-import geometry_msgs.msg # for Twist
-import std_msgs.msg # for JointState
 import numpy as np
 import socket
 import tf2_ros
-import yaml
-import time 
-from obstacle_detector.msg import Obstacles
-from scipy.spatial.transform import Rotation as scp
-from scipy.spatial.transform import Slerp
+import obstacle_detector.msg
 
 class obstacleDist():
     def __init__(self):
-        self.follower_frame = 'ridgeBframe'
         rospy.init_node('obstacle_distance_calculator',anonymous=True)
-        self.obstacles = rospy.Subscriber('/obstacles',Obstacles,
+        self.name = socket.gethostname()
+        if self.name == 'sirab-T15':
+            self.follower = 'sirab'
+            self.leader = 'sirar'
+            self.leader_frame = 'ridgeRframe_from_marker_left'
+            self.follower_frame = 'ridgeBframe'
+        else:
+            self.follower = 'sirar'
+            self.leader = 'sirab'
+            self.leader_frame = 'ridgeBframe_from_marker_right'
+            self.follower_frame = 'ridgeRframe'
+        self.obs_frame = 'ridgeRframe_from_marker_left' #obstacle frame
+
+        
+        self.obstacles = rospy.Subscriber('/obstacles',obstacle_detector.msg.Obstacles,
                                                  self.calcObsPosition,queue_size=1)
+        self.closest_obstacle = rospy.Publisher('/'+self.follower+'/closest_obstacle',obstacle_detector.msg.CircleObstacle,queue_size=10)
+        self.closest_wall = rospy.Publisher('/'+self.follower+'/closest_wall',obstacle_detector.msg.SegmentObstacle,queue_size=10)
+        
 
     def calcObsPosition(self,obstacles):
         self.obstacle_dist = []
+        self.wall_dist = []
         for circle in obstacles.circles:
             mag = np.sqrt(circle.center.x**2 + circle.center.y**2)
             obs_dist = mag - circle.radius
             if obs_dist > .25:
-                self.obstacle_dist.append(np.abs(obs_dist))
+                self.obstacle_dist.append({'mag':np.abs(obs_dist),'obs':circle,'type':'circle'})
         for segment in obstacles.segments:
             p1,p2 = (segment.first_point.x,segment.first_point.y),(segment.last_point.x,segment.last_point.y)
             a,b,c = self.calcLine(p1,p2)
-            obs_dist = c / np.sqrt(a**2 + b**2)
-            if obs_dist > .1:
-                self.obstacle_dist.append(np.abs(obs_dist))
-        self.obstacle_dist = np.asarray(self.obstacle_dist)
+            wall_dist = c / np.sqrt(a**2 + b**2)
+            if abs(wall_dist) > .25:
+                self.wall_dist.append({'mag':np.abs(wall_dist),'obs':segment,'type':'segment'})
+
+        self.sorted_obstacles = sorted(self.obstacle_dist,key=lambda x: x['mag'])
+        self.sorted_walls = sorted(self.wall_dist,key=lambda x: x['mag'])
+
+        self.closest_obstacle.publish(self.sorted_obstacles[0]['obs'])
+        self.closest_wall.publish(self.sorted_walls[0]['obs'])
+
 
 
     def calcLine(self,p1,p2):
