@@ -39,14 +39,31 @@ class obstacleDist():
                 self.obstacle_dist.append({'mag':np.abs(obs_dist),'obs':circle,'type':'circle'})
         for segment in obstacles.segments:
             p1,p2 = (segment.first_point.x,segment.first_point.y),(segment.last_point.x,segment.last_point.y)
+            x_close = min(p1[0],p2[0])
+            x_far = max(p1[0],p2[0])
+            y_close = min(p1[1],p2[1])
+            y_far = max(p1[1],p2[1])
             a,b,c = self.calcLine(p1,p2)
             wall_dist = c / np.sqrt(a**2 + b**2)
-            if abs(wall_dist) > .25:
-                self.wall_dist.append({'mag':np.abs(wall_dist),'obs':segment,'type':'segment'})
+            wall_ang = np.arccos(a) + np.pi/2
+
+            if x_close < wall_dist*np.cos(wall_ang) < x_far and y_close < wall_dist*np.sin(wall_ang) < y_far:
+                pass
+            else:
+                p1_dist = np.sqrt(p1[0]**2 + p1[1]**2)
+                p2_dist = np.sqrt(p2[0]**2 + p2[1]**2)
+                wall_dist = min(p1_dist,p2_dist)
+                if p1_dist > p2_dist:
+                    wall_ang = np.arctan2(p2[1],p2[0])
+                else:
+                    wall_ang = np.arctan2(p1[1],p2[0])
+                if abs(wall_dist) > .25:
+                    self.wall_dist.append({'mag':np.abs(wall_dist),'obs':segment,'type':'segment'})
 
         self.sorted_obstacles = sorted(self.obstacle_dist,key=lambda x: x['mag'])
         self.sorted_walls = sorted(self.wall_dist,key=lambda x: x['mag'])
 
+        #print(self.sorted_walls[0]['mag'])
         self.closest_obstacle.publish(self.sorted_obstacles[0]['obs'])
         self.closest_wall.publish(self.sorted_walls[0]['obs'])
 
