@@ -2,31 +2,20 @@
 
 import rospy
 import numpy as np
-import socket
 import tf2_ros
 import obstacle_detector.msg
+from identity import sira_name, sira_follower, sira_leader, sira_leader_frame, sira_follower_frame
 
 class obstacleDist():
     def __init__(self):
         rospy.init_node('obstacle_distance_calculator',anonymous=True)
-        self.name = socket.gethostname()
-        if self.name == 'sirab-T15':
-            self.follower = 'sirab'
-            self.leader = 'sirar'
-            self.leader_frame = 'ridgeRframe_from_marker_left'
-            self.follower_frame = 'ridgeBframe'
-        else:
-            self.follower = 'sirar'
-            self.leader = 'sirab'
-            self.leader_frame = 'ridgeBframe_from_marker_right'
-            self.follower_frame = 'ridgeRframe'
-        self.obs_frame = 'ridgeRframe_from_marker_left' #obstacle frame
 
+        self.obs_frame = 'ridgeRframe_from_marker_left' #obstacle frame
         
         self.obstacles = rospy.Subscriber('/obstacles',obstacle_detector.msg.Obstacles,
                                                  self.calcObsPosition,queue_size=1)
-        self.closest_obstacle = rospy.Publisher('/'+self.follower+'/closest_obstacle',obstacle_detector.msg.CircleObstacle,queue_size=10)
-        self.closest_wall = rospy.Publisher('/'+self.follower+'/closest_wall',obstacle_detector.msg.SegmentObstacle,queue_size=10)
+        self.closest_obstacle = rospy.Publisher('/'+sira_follower+'/closest_obstacle',obstacle_detector.msg.CircleObstacle,queue_size=10)
+        self.closest_wall = rospy.Publisher('/'+sira_follower+'/closest_wall',obstacle_detector.msg.SegmentObstacle,queue_size=10)
         
 
     def calcObsPosition(self,obstacles):
