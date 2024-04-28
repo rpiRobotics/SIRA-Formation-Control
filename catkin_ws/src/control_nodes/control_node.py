@@ -12,6 +12,7 @@ import message_filters
 import obstacle_detector.msg
 from scipy.spatial.transform import Rotation as scp
 from scipy.spatial.transform import Slerp
+from identity import sira_name, sira_follower, sira_leader, sira_leader_frame, sira_follower_frame
 
 
 class followerPosControl():
@@ -32,33 +33,21 @@ class followerPosControl():
         self.tfListener = tf2_ros.TransformListener(self.tfBuffer)
 
         #Subscribed messages
-        self.name = socket.gethostname()
-        if self.name == 'sirab-T15':
-            self.follower = 'sirab'
-            self.leader = 'sirar'
-            self.leader_frame = 'ridgeRframe_from_marker_left'
-            self.follower_frame = 'ridgeBframe'
-        else:
-            self.follower = 'sirar'
-            self.leader = 'sirab'
-            self.leader_frame = 'ridgeBframe_from_marker_right'
-            self.follower_frame = 'ridgeRframe'
-        self.obs_frame = 'ridgeRframe_from_marker_left' #obstacle frame
         time.sleep(2)
-        self.leader_vel = rospy.Subscriber('/'+self.follower+'/ridgeback/vel_feedback',geometry_msgs.msg.Twist,
+        self.leader_vel = rospy.Subscriber('/'+sira_leader+'/ridgeback/vel_feedback',geometry_msgs.msg.Twist,
                                                  self.calcVel,queue_size=1)
-        self.circles = rospy.Subscriber('/'+self.follower+'/closest_obstacle',obstacle_detector.msg.CircleObstacle,
+        self.circles = rospy.Subscriber('/'+sira_follower+'/closest_obstacle',obstacle_detector.msg.CircleObstacle,
                                                  self.calcObsPosition,queue_size=1)
-        self.walls = rospy.Subscriber('/'+self.follower+'/closest_wall',obstacle_detector.msg.SegmentObstacle,
+        self.walls = rospy.Subscriber('/'+sira_follower+'/closest_wall',obstacle_detector.msg.SegmentObstacle,
                                                  self.calcWallPosition,queue_size=1)
         
         #Published messages
-        self.follower_vel = rospy.Publisher('/'+self.follower+'/ridgeback/ridgeback_velocity_controller/cmd_vel', geometry_msgs.msg.Twist,queue_size=1)
+        self.follower_vel = rospy.Publisher('/'+sira_follower+'/ridgeback/ridgeback_velocity_controller/cmd_vel', geometry_msgs.msg.Twist,queue_size=1)
         self.cur_pos = np.zeros([3,1])
         self.leader_pos = np.zeros([3,1])
 
     def calcRelPosition(self):
-        pos = self.tfBuffer.lookup_transform(self.leader_frame,self.follower_frame,rospy.Time())
+        pos = self.tfBuffer.lookup_transform(sira_leader_frame,sira_follower_frame,rospy.Time())
         self.x = pos.transform.translation.x
         self.y = pos.transform.translation.y
         self.psi = pos.transform.rotation.z
