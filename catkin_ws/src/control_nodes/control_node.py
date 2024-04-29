@@ -34,7 +34,6 @@ class followerPosControl():
         self.tfBuffer = tf2_ros.Buffer()
         self.tfListener = tf2_ros.TransformListener(self.tfBuffer)
 
-        self.latest_leader_vel = np.zeros((3,1))
         self.leader_vel = np.zeros((3,1))
 
         #Subscribed messages
@@ -58,7 +57,7 @@ class followerPosControl():
         self.x = pos.transform.translation.x
         self.y = pos.transform.translation.y
         self.psi = pos.transform.rotation.z
-        #self.theta = self.calcAngle(self.x,self.y,self.theta)
+        #self.theta = followerPosControl.calcAngle(self.x,self.y,self.theta)
         self.theta = np.arctan2(self.x,self.y)
 
     def calcObsPosition(self,obstacles):
@@ -66,14 +65,13 @@ class followerPosControl():
         self.circ_dist = np.abs(mag - obstacles.radius)
         self.circ_ang = np.arctan2(obstacles.center.y,obstacles.center.x)
 
-
     def calcWallPosition(self,walls):
         p1,p2 = (walls.first_point.x,walls.first_point.y),(walls.last_point.x,walls.last_point.y)
         x_close = min(p1[0],p2[0])
         x_far = max(p1[0],p2[0])
         y_close = min(p1[1],p2[1])
         y_far = max(p1[1],p2[1])
-        a,b,c = self.calcLine(p1,p2)
+        a,b,c = followerPosControl.calcLine(p1,p2)
         self.wall_dist = np.abs(c / np.sqrt(a**2 + b**2))
         self.wall_angle = np.arccos(a) + np.pi/2
 
@@ -87,10 +85,8 @@ class followerPosControl():
                 self.wall_angle = np.arctan2(p2[1],p2[0])
             else:
                 self.wall_angle = np.arctan2(p1[1],p2[0])
-
         
-        
-    def calcLine(self,p1,p2):
+    def calcLine(p1,p2):
         if p1[0] == p2[0]:
             theta = np.pi/2
             c = p1[0]
@@ -106,7 +102,7 @@ class followerPosControl():
             else:
                 return -a,-b,-c
 
-    def calcAngle(self,x,y,ang_in):
+    def calcAngle(x,y,ang_in):
         angle = np.arctan2(x,y)
         if abs(angle-ang_in) > 5:
             if angle > ang_in:
@@ -114,23 +110,37 @@ class followerPosControl():
             else:
                 self.theta = angle+2*np.pi
 
-    def save_leader_vel(self, leader_velocity):
-        self.latest_leader_vel = leader_velocity
+    def saveLeaderVel(self, leader_velocity):
+        self.leader_vel = np.zeros((3,1))
+        #self.leader_vel[0] = np.sqrt(leader_velocity.linear.x**2 + leader_velocity.linear.y**2) #uncomment when testing with sirar
+        #self.leader_vel[1] = leader_velocity.angular.z
 
     def calcVel(self, event=None):
+        '''
+        This function calculates target velocity based on relative
+        position to the leader and to the closest obstacle
+        '''
+
+        # get latest relative position
         self.calcRelPosition()
-        self.leader_vel = np.zeros((3,1))
-        #self.leader_vel[0] = np.sqrt(self.latest_leader_vel.linear.x**2 + self.latest_leader_vel.linear.y**2) #uncomment when testing with sirar
-        #self.leader_vel[1] = self.latest_leader_vel.angular.z
         #print('relative position: {}, {}'.format(self.l,self.theta))
 
+        # calculate position-based control
+        # this includes leader velocity
         error = np.array([self.k1*(self.xd-self.x),self.k1*(self.yd-self.y),self.k2*(self.psid-self.psi)]).reshape(3,1)
-        uj = error - self.leader_vel
+        uj = error + self.leader_vel
         R = np.array([[np.cos(self.theta),-np.sin(self.theta), 0],[np.sin(self.theta),np.cos(self.theta),0],[0,0,1]])
         self.sira_vel = np.dot(R, uj)
         self.sira_vel[2] = -1 * self.sira_vel[2]
-        #self.obstacleAvoidance()
 
+        # avoid obstacles
+        if self.obs_dist < self.avoidance_length:
+            repel_force = self.repel_strength * (1/self.obs_dist - 1/self.avoidance_length) * (-1/self.obs_dist)
+            #print(repel_force*np.sin(self.obs_angle))
+            self.sira_vel[0] = self.sira_vel[0]+repel_force*np.cos(self.obs_angle)
+            self.sira_vel[1] = self.sira_vel[1]+repel_force*np.sin(self.obs_angle)
+
+        # saturate target velocity
         if np.abs(self.sira_vel[0]) > 0.2:
             if self.sira_vel[0] > 0:
                 self.sira_vel[0] = 0.2
@@ -156,15 +166,6 @@ class followerPosControl():
         #print('obstacle angle {0}'.format(self.obs_angle))
 
         print(self.obs_dist)
-        if self.obs_dist < self.avoidance_length:
-            repel_force = self.repel_strength * (1/self.obs_dist - 1/self.avoidance_length) * (-1/self.obs_dist)
-            #print(repel_force*np.sin(self.obs_angle))
-            self.sira_vel[0] = self.sira_vel[0]+repel_force*np.cos(self.obs_angle)
-            self.sira_vel[1] = self.sira_vel[1]+repel_force*np.sin(self.obs_angle)
-        
-        
-            
-        
     
     def publishVel(self):
         publish_vel = geometry_msgs.msg.Twist()
