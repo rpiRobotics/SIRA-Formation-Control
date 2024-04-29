@@ -17,6 +17,8 @@ from identity import sira_name, sira_follower, sira_leader, sira_leader_frame, s
 
 class followerPosControl():
     def __init__(self):
+        print('initializing...')
+        print('my name ' + sira_name + '   follower ' + sira_follower + '   leader ' + sira_leader + '   leader frame ' + sira_leader_frame + '   follower frame ' + sira_follower_frame)
         rospy.init_node('follower_control_node',anonymous=True)
         #set initialization variables
         self.xd = 0
@@ -32,14 +34,19 @@ class followerPosControl():
         self.tfBuffer = tf2_ros.Buffer()
         self.tfListener = tf2_ros.TransformListener(self.tfBuffer)
 
+        self.latest_leader_vel = np.zeros((3,1))
+        self.leader_vel = np.zeros((3,1))
+
         #Subscribed messages
         time.sleep(2)
-        self.leader_vel = rospy.Subscriber('/'+sira_leader+'/ridgeback/vel_feedback',geometry_msgs.msg.Twist,
-                                                 self.calcVel,queue_size=1)
+        rospy.Subscriber('/'+sira_leader+'/ridgeback/vel_feedback_rebroadcast',geometry_msgs.msg.Twist,
+                                                 self.save_leader_vel,queue_size=1)
         self.circles = rospy.Subscriber('/'+sira_follower+'/closest_obstacle',obstacle_detector.msg.CircleObstacle,
                                                  self.calcObsPosition,queue_size=1)
         self.walls = rospy.Subscriber('/'+sira_follower+'/closest_wall',obstacle_detector.msg.SegmentObstacle,
                                                  self.calcWallPosition,queue_size=1)
+
+        rospy.Timer(rospy.Duration(secs=1.0/100.0), self.calcVel)
         
         #Published messages
         self.follower_vel = rospy.Publisher('/'+sira_follower+'/ridgeback/ridgeback_velocity_controller/cmd_vel', geometry_msgs.msg.Twist,queue_size=1)
@@ -107,11 +114,14 @@ class followerPosControl():
             else:
                 self.theta = angle+2*np.pi
 
-    def calcVel(self,leader_velocity):
+    def save_leader_vel(self, leader_velocity):
+        self.latest_leader_vel = leader_velocity
+
+    def calcVel(self, event=None):
         self.calcRelPosition()
         self.leader_vel = np.zeros((3,1))
-        #self.leader_vel[0] = np.sqrt(leader_velocity.linear.x**2 + leader_velocity.linear.y**2) #uncomment when testing with sirar
-        #self.leader_vel[1] = leader_velocity.angular.z
+        #self.leader_vel[0] = np.sqrt(self.latest_leader_vel.linear.x**2 + self.latest_leader_vel.linear.y**2) #uncomment when testing with sirar
+        #self.leader_vel[1] = self.latest_leader_vel.angular.z
         #print('relative position: {}, {}'.format(self.l,self.theta))
 
         error = np.array([self.k1*(self.xd-self.x),self.k1*(self.yd-self.y),self.k2*(self.psid-self.psi)]).reshape(3,1)
@@ -145,7 +155,7 @@ class followerPosControl():
         #print('obstacle distance{0}'.format(self.obs_dist))
         #print('obstacle angle {0}'.format(self.obs_angle))
 
-        #print(self.obs_dist)
+        print(self.obs_dist)
         if self.obs_dist < self.avoidance_length:
             repel_force = self.repel_strength * (1/self.obs_dist - 1/self.avoidance_length) * (-1/self.obs_dist)
             #print(repel_force*np.sin(self.obs_angle))
@@ -164,7 +174,7 @@ class followerPosControl():
         publish_vel.angular.x = 0
         publish_vel.angular.y = 0
         publish_vel.angular.z = self.sira_vel[2][0] / 5
-        self.follower_vel.publish(publish_vel)
+        # self.follower_vel.publish(publish_vel)
         print(publish_vel)
 
         #Auxiliary Functions
