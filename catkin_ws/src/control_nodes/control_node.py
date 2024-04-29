@@ -39,7 +39,7 @@ class followerPosControl():
         #Subscribed messages
         time.sleep(2)
         rospy.Subscriber('/'+sira_leader+'/ridgeback/vel_feedback_rebroadcast',geometry_msgs.msg.Twist,
-                                                 self.save_leader_vel,queue_size=1)
+                                                 self.saveLeaderVel,queue_size=1)
         self.circles = rospy.Subscriber('/'+sira_follower+'/closest_obstacle',obstacle_detector.msg.CircleObstacle,
                                                  self.calcObsPosition,queue_size=1)
         self.walls = rospy.Subscriber('/'+sira_follower+'/closest_wall',obstacle_detector.msg.SegmentObstacle,
