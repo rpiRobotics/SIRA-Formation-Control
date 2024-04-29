@@ -30,6 +30,12 @@ class followerPosControl():
         self.avoidance_length = .8
         self.repel_strength = .75
 
+        # initialize variables (soon to be set)
+        self.circ_dist = self.avoidance_length
+        self.circ_angle = 0
+        self.wall_dist = self.avoidance_length
+        self.wall_angle = 0
+
 
         self.tfBuffer = tf2_ros.Buffer()
         self.tfListener = tf2_ros.TransformListener(self.tfBuffer)
