@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
-import geometry_msgs.msg # for Twist
+import geometry_msgs.msg # for Twist and Wrench
 import std_msgs.msg # for JointState
 import numpy as np
 import socket
@@ -29,6 +29,8 @@ class followerPosControl():
         self.theta = np.pi/2
         self.avoidance_length = .8
         self.repel_strength = .75
+        self.target_force = 20
+        self.force_error = np.zeros((3, 1))
 
         # initialize variables (soon to be set)
         self.circ_dist = self.avoidance_length
@@ -45,11 +47,13 @@ class followerPosControl():
         #Subscribed messages
         time.sleep(2)
         rospy.Subscriber('/'+sira_leader+'/ridgeback/vel_feedback_rebroadcast',geometry_msgs.msg.Twist,
-                                                 self.saveLeaderVel,queue_size=1)
-        self.circles = rospy.Subscriber('/'+sira_follower+'/closest_obstacle',obstacle_detector.msg.CircleObstacle,
-                                                 self.calcObsPosition,queue_size=1)
-        self.walls = rospy.Subscriber('/'+sira_follower+'/closest_wall',obstacle_detector.msg.SegmentObstacle,
-                                                 self.calcWallPosition,queue_size=1)
+                         self.saveLeaderVel,queue_size=1)
+        rospy.Subscriber('/'+sira_follower+'/closest_obstacle',obstacle_detector.msg.CircleObstacle,
+                         self.calcObsPosition,queue_size=1)
+        rospy.Subscriber('/'+sira_follower+'/closest_wall',obstacle_detector.msg.SegmentObstacle,
+                         self.calcWallPosition,queue_size=1)
+        rospy.Subscriber('/'+sira_follower+'netft/transformed_world_forces', geometry_msgs.msg.WrenchStamped,
+                         self.saveForce, queue_size=1)
 
         rospy.Timer(rospy.Duration(secs=1.0/100.0), self.calcVel)
         
@@ -121,6 +125,22 @@ class followerPosControl():
         #self.leader_vel[0] = np.sqrt(leader_velocity.linear.x**2 + leader_velocity.linear.y**2) #uncomment when testing with sirar
         #self.leader_vel[1] = leader_velocity.angular.z
 
+    def saveForce(self, wrenchStamped):
+        '''
+        Read the current force and update the force term in the compliant controller
+        '''
+        current_force = wrenchStamped.wrench.force
+        force_magnitude = (current_force.x ** 2 + current_force.y ** 2) ** 0.5
+
+        # check if the force exceeds the target force
+        # if it does, we need to consider this force in our controller
+        self.force_error = np.zeros((3, 1))
+        if force_magnitude > self.target_force:
+            self.force_error[0] = (force_magnitude - self.target_force) * current_force.x / force_magnitude
+            self.force_error[1] = (force_magnitude - self.target_force) * current_force.y / force_magnitude
+        print('force error: ' + str(self.force_error))
+        
+
     def calcVel(self, event=None):
         '''
         This function calculates target velocity based on relative
@@ -137,7 +157,12 @@ class followerPosControl():
         # this includes leader velocity
         error = np.array([self.k1*(self.xd-self.x),self.k1*(self.yd-self.y),self.k2*(self.psid-self.psi)]).reshape(3,1)
         uj = error + self.leader_vel
-        R = np.array([[np.cos(self.theta),-np.sin(self.theta), 0],[np.sin(self.theta),np.cos(self.theta),0],[0,0,1]])
+
+        # rotate the forces from leader to follower frame
+        R = np.array([[np.cos(self.theta),-np.sin(self.theta), 0],
+                      [np.sin(self.theta),np.cos(self.theta),0],
+                      [0,0,1]])
+        
         self.sira_vel = np.dot(R, uj)
         self.sira_vel[2] = -1 * self.sira_vel[2]
 
