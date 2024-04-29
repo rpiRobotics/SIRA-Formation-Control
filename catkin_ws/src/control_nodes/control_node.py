@@ -52,7 +52,7 @@ class followerPosControl():
                          self.calcObsPosition,queue_size=1)
         rospy.Subscriber('/'+sira_follower+'/closest_wall',obstacle_detector.msg.SegmentObstacle,
                          self.calcWallPosition,queue_size=1)
-        rospy.Subscriber('/'+sira_follower+'netft/transformed_world_forces', geometry_msgs.msg.WrenchStamped,
+        rospy.Subscriber('/'+sira_follower+'/netft/transformed_world_forces', geometry_msgs.msg.WrenchStamped,
                          self.saveForce, queue_size=1)
 
         rospy.Timer(rospy.Duration(secs=1.0/100.0), self.calcVel)
@@ -198,7 +198,7 @@ class followerPosControl():
         #print('obstacle distance{0}'.format(self.obs_dist))
         #print('obstacle angle {0}'.format(self.obs_angle))
 
-        print(self.obs_dist)
+        # print(self.obs_dist)
     
     def publishVel(self):
         publish_vel = geometry_msgs.msg.Twist()
@@ -209,7 +209,7 @@ class followerPosControl():
         publish_vel.angular.y = 0
         publish_vel.angular.z = self.sira_vel[2][0] / 5
         # self.follower_vel.publish(publish_vel)
-        print(publish_vel)
+        # print(publish_vel)
 
         #Auxiliary Functions
 if __name__=='__main__':
