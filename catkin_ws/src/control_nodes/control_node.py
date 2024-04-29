@@ -121,9 +121,11 @@ class followerPosControl():
         position to the leader and to the closest obstacle
         '''
 
-        # get latest relative position
+        # get latest relative position to leader
         self.calcRelPosition()
-        #print('relative position: {}, {}'.format(self.l,self.theta))
+
+        # get latest relative position to obstacles
+        self.obstacleAvoidance()
 
         # calculate position-based control
         # this includes leader velocity
