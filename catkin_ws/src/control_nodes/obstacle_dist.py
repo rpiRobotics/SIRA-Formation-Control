@@ -53,6 +53,7 @@ class obstacleDist():
         self.sorted_walls = sorted(self.wall_dist,key=lambda x: x['mag'])
 
         #print(self.sorted_walls[0]['mag'])
+        print('publishing!')
         self.closest_obstacle.publish(self.sorted_obstacles[0]['obs'])
         self.closest_wall.publish(self.sorted_walls[0]['obs'])
 
