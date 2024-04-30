@@ -20,25 +20,44 @@ class followerPosControl():
         print('initializing...')
         print('my name ' + sira_name + '   follower ' + sira_follower + '   leader ' + sira_leader + '   leader frame ' + sira_leader_frame + '   follower frame ' + sira_follower_frame)
         rospy.init_node('follower_control_node',anonymous=True)
-        #set initialization variables
+
+        ### position related variables ###
+        
+        # desired values
         self.xd = 0
         self.yd = 1.5
         self.psid = 0
-        self.k1 = 1
-        self.k2 = 2
+        
+        # scale factors
+        self.k_position_xy = 1
+        self.k_position_angle = 2
         self.theta = np.pi/2
+
+        ### obstacle related variables ###
         self.avoidance_length = .8
         self.repel_strength = .75
-        self.target_force = 20
-        self.force_error = np.zeros((3, 1))
-
-        # initialize variables (soon to be set)
         self.circ_dist = self.avoidance_length
         self.circ_angle = 0
         self.wall_dist = self.avoidance_length
         self.wall_angle = 0
 
 
+        ### force related variables ###
+        self.target_force = 20
+
+        ### compliant controller ###
+        
+        # set scale factors
+        self.k_position = 1
+        self.k_obstacle = 0.75
+        self.k_force = 1
+        
+        # initialize compliant controller terms to 0
+        self.position_term = np.zeros((3, 1))
+        self.obstacle_term = np.zeros((3, 1))
+        self.force_term = np.zeros((3, 1))
+
+        # create tf butter to lookup transformations
         self.tfBuffer = tf2_ros.Buffer()
         self.tfListener = tf2_ros.TransformListener(self.tfBuffer)
 
@@ -56,6 +75,7 @@ class followerPosControl():
                          self.saveForce, queue_size=1)
 
         rospy.Timer(rospy.Duration(secs=1.0/100.0), self.calcVel)
+        rospy.Timer(rospy.Duration(secs=1.0/100.0), self.calcPositionComponent)
         
         #Published messages
         self.follower_vel = rospy.Publisher('/'+sira_follower+'/ridgeback/ridgeback_velocity_controller/cmd_vel', geometry_msgs.msg.Twist,queue_size=1)
@@ -74,6 +94,9 @@ class followerPosControl():
         mag = np.sqrt(obstacles.center.x**2 + obstacles.center.y**2)
         self.circ_dist = np.abs(mag - obstacles.radius)
         self.circ_ang = np.arctan2(obstacles.center.y,obstacles.center.x)
+
+        # update obstacle component with new data
+        self.calcObstacleComponent()
 
     def calcWallPosition(self,walls):
         p1,p2 = (walls.first_point.x,walls.first_point.y),(walls.last_point.x,walls.last_point.y)
@@ -95,7 +118,9 @@ class followerPosControl():
                 self.wall_angle = np.arctan2(p2[1],p2[0])
             else:
                 self.wall_angle = np.arctan2(p1[1],p2[0])
-        
+        # update obstacle component with new data
+        self.calcObstacleComponent()
+
     def calcLine(p1,p2):
         if p1[0] == p2[0]:
             theta = np.pi/2
@@ -125,7 +150,44 @@ class followerPosControl():
         #self.leader_vel[0] = np.sqrt(leader_velocity.linear.x**2 + leader_velocity.linear.y**2) #uncomment when testing with sirar
         #self.leader_vel[1] = leader_velocity.angular.z
 
-    def saveForce(self, wrenchStamped):
+    def calcPositionComponent(self, event=None):
+        '''
+        Read the latest relative position and update the position term in the compliant controller
+        '''
+        # get latest relative position to leader
+        self.calcRelPosition()
+
+        # calculate position-based control
+        # this includes leader velocity
+        error = np.array([self.k_position_xy*(self.xd-self.x),self.k_position_xy*(self.yd-self.y),self.k_position_angle*(self.psid-self.psi)]).reshape(3,1)
+        # uj = error + self.leader_vel
+        uj = error # 
+        
+        # rotate the forces from leader to follower frame
+        R = np.array([[np.cos(self.theta),-np.sin(self.theta), 0],
+                      [np.sin(self.theta),np.cos(self.theta),0],
+                      [0,0,1]])
+        
+        self.position_term = np.dot(R, uj)
+
+
+    def calcObstacleComponent(self, event=None):
+        '''
+        Read the latest obstacles and update the obstacle term in the compliant controller
+        '''
+        # get latest relative position to obstacles
+        self.obstacleAvoidance()
+
+        # avoid obstacles
+        if self.obs_dist < self.avoidance_length:
+            repel_force_magnitude = self.repel_strength * (1/self.obs_dist - 1/self.avoidance_length) * (-1/self.obs_dist)
+            #print(repel_force*np.sin(self.obs_angle))
+            self.obstacle_term[0] = repel_force_magnitude * np.cos(self.obs_angle)
+            self.obstacle_term[1] = repel_force_magnitude * *np.sin(self.obs_angle)
+        else:
+            self.obstacle_term = np.zeros((3, 1))
+
+    def calcForceComponent(self, wrenchStamped):
         '''
         Read the current force and update the force term in the compliant controller
         '''
@@ -134,11 +196,10 @@ class followerPosControl():
 
         # check if the force exceeds the target force
         # if it does, we need to consider this force in our controller
-        self.force_error = np.zeros((3, 1))
+        self.force_term = np.zeros((3, 1))
         if force_magnitude > self.target_force:
-            self.force_error[0] = (force_magnitude - self.target_force) * current_force.x / force_magnitude
-            self.force_error[1] = (force_magnitude - self.target_force) * current_force.y / force_magnitude
-        print('force error: ' + str(self.force_error))
+            self.force_term[0] = (force_magnitude - self.target_force) * current_force.x / force_magnitude
+            self.force_term[1] = (force_magnitude - self.target_force) * current_force.y / force_magnitude
         
 
     def calcVel(self, event=None):
@@ -147,31 +208,7 @@ class followerPosControl():
         position to the leader and to the closest obstacle
         '''
 
-        # get latest relative position to leader
-        self.calcRelPosition()
-
-        # get latest relative position to obstacles
-        self.obstacleAvoidance()
-
-        # calculate position-based control
-        # this includes leader velocity
-        error = np.array([self.k1*(self.xd-self.x),self.k1*(self.yd-self.y),self.k2*(self.psid-self.psi)]).reshape(3,1)
-        uj = error + self.leader_vel
-
-        # rotate the forces from leader to follower frame
-        R = np.array([[np.cos(self.theta),-np.sin(self.theta), 0],
-                      [np.sin(self.theta),np.cos(self.theta),0],
-                      [0,0,1]])
-        
-        self.sira_vel = np.dot(R, uj)
-        self.sira_vel[2] = -1 * self.sira_vel[2]
-
-        # avoid obstacles
-        if self.obs_dist < self.avoidance_length:
-            repel_force = self.repel_strength * (1/self.obs_dist - 1/self.avoidance_length) * (-1/self.obs_dist)
-            #print(repel_force*np.sin(self.obs_angle))
-            self.sira_vel[0] = self.sira_vel[0]+repel_force*np.cos(self.obs_angle)
-            self.sira_vel[1] = self.sira_vel[1]+repel_force*np.sin(self.obs_angle)
+        self.sira_vel = self.k_position * self.position_term + self.k_obstacle * self.obstacle_term + self.k_force * self.force_term)
 
         # saturate target velocity
         if np.abs(self.sira_vel[0]) > 0.2:
