@@ -72,7 +72,7 @@ class followerPosControl():
         rospy.Subscriber('/'+sira_follower+'/closest_wall',obstacle_detector.msg.SegmentObstacle,
                          self.calcWallPosition,queue_size=1)
         rospy.Subscriber('/'+sira_follower+'/netft/transformed_world_forces', geometry_msgs.msg.WrenchStamped,
-                         self.saveForce, queue_size=1)
+                         self.calcForceComponent, queue_size=1)
 
         rospy.Timer(rospy.Duration(secs=1.0/100.0), self.calcVel)
         rospy.Timer(rospy.Duration(secs=1.0/100.0), self.calcPositionComponent)
@@ -183,7 +183,7 @@ class followerPosControl():
             repel_force_magnitude = self.repel_strength * (1/self.obs_dist - 1/self.avoidance_length) * (-1/self.obs_dist)
             #print(repel_force*np.sin(self.obs_angle))
             self.obstacle_term[0] = repel_force_magnitude * np.cos(self.obs_angle)
-            self.obstacle_term[1] = repel_force_magnitude * *np.sin(self.obs_angle)
+            self.obstacle_term[1] = repel_force_magnitude * np.sin(self.obs_angle)
         else:
             self.obstacle_term = np.zeros((3, 1))
 
@@ -208,7 +208,8 @@ class followerPosControl():
         position to the leader and to the closest obstacle
         '''
 
-        self.sira_vel = self.k_position * self.position_term + self.k_obstacle * self.obstacle_term + self.k_force * self.force_term)
+        self.sira_vel = self.k_position * self.position_term + self.k_obstacle * self.obstacle_term + self.k_force * self.force_term
+        print('pos {0}\nobstacle {1}\nforce {2}'.format(self.position_term.transpose(), self.obstacle_term.transpose(), self.force_term.transpose()))
 
         # saturate target velocity
         if np.abs(self.sira_vel[0]) > 0.2:
@@ -246,7 +247,7 @@ class followerPosControl():
         publish_vel.angular.y = 0
         publish_vel.angular.z = self.sira_vel[2][0] / 5
         # self.follower_vel.publish(publish_vel)
-        # print(publish_vel)
+        print(publish_vel)
 
         #Auxiliary Functions
 if __name__=='__main__':
