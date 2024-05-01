@@ -51,6 +51,10 @@ class followerPosControl():
         self.k_position = 1
         self.k_obstacle = 0
         self.k_force = 1
+
+        # number of points to average to smooth velocity
+        self.smooth_point_count = 10
+        self.previous_velocities = []
         
         # initialize compliant controller terms to 0
         self.position_term = np.zeros((3, 1))
@@ -208,9 +212,17 @@ class followerPosControl():
         position to the leader and to the closest obstacle
         '''
 
-        self.sira_vel = self.k_position * self.position_term + self.k_obstacle * self.obstacle_term + self.k_force * self.force_term
+        self.now_sira_vel = self.k_position * self.position_term + self.k_obstacle * self.obstacle_term + self.k_force * self.force_term
         print('pos {0}\nobstacle {1}\nforce {2}'.format(self.position_term.transpose(), self.obstacle_term.transpose(), self.force_term.transpose()))
 
+        # calculate smoothing
+        self.previous_velocities = [self.now_sira_vel] + self.previous_velocities
+        if len(self.previous_velocities) > self.smooth_point_count:
+            self.previous_velocities.pop()
+
+        # calculate averages manually
+        self.sira_vel = np.array([sum(v[0] for v in self.previous_velocities), sum(v[1] for v in self.previous_velocities), sum(v[2] for v in self.previous_velocities)]).reshape(3, 1) / len(self.previous_velocities)
+        
         # saturate target velocity
         if np.abs(self.sira_vel[0]) > 0.2:
             if self.sira_vel[0] > 0:
