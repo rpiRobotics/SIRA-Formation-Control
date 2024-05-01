@@ -30,7 +30,7 @@ class followerPosControl():
         
         # scale factors
         self.k_position_xy = 1
-        self.k_position_angle = 2
+        self.k_position_angle = 1
         self.theta = np.pi/2
 
         ### obstacle related variables ###
@@ -49,7 +49,7 @@ class followerPosControl():
         
         # set scale factors
         self.k_position = 1
-        self.k_obstacle = 0.75
+        self.k_obstacle = 0
         self.k_force = 1
         
         # initialize compliant controller terms to 0
@@ -86,8 +86,8 @@ class followerPosControl():
         pos = self.tfBuffer.lookup_transform(sira_leader_frame,sira_follower_frame,rospy.Time())
         self.x = pos.transform.translation.x
         self.y = pos.transform.translation.y
-        self.psi = pos.transform.rotation.z
-        #self.theta = followerPosControl.calcAngle(self.x,self.y,self.theta)
+        self.psi = -pos.transform.rotation.z
+        #self.theta = self.calcAngle(self.x,self.y,self.theta)
         self.theta = np.arctan2(self.x,self.y)
 
     def calcObsPosition(self,obstacles):
@@ -104,7 +104,7 @@ class followerPosControl():
         x_far = max(p1[0],p2[0])
         y_close = min(p1[1],p2[1])
         y_far = max(p1[1],p2[1])
-        a,b,c = followerPosControl.calcLine(p1,p2)
+        a,b,c = self.calcLine(p1,p2)
         self.wall_dist = np.abs(c / np.sqrt(a**2 + b**2))
         self.wall_angle = np.arccos(a) + np.pi/2
 
@@ -121,7 +121,7 @@ class followerPosControl():
         # update obstacle component with new data
         self.calcObstacleComponent()
 
-    def calcLine(p1,p2):
+    def calcLine(self, p1,p2):
         if p1[0] == p2[0]:
             theta = np.pi/2
             c = p1[0]
@@ -137,7 +137,7 @@ class followerPosControl():
             else:
                 return -a,-b,-c
 
-    def calcAngle(x,y,ang_in):
+    def calcAngle(self, x,y,ang_in):
         angle = np.arctan2(x,y)
         if abs(angle-ang_in) > 5:
             if angle > ang_in:
@@ -240,13 +240,13 @@ class followerPosControl():
     
     def publishVel(self):
         publish_vel = geometry_msgs.msg.Twist()
-        publish_vel.linear.x = self.sira_vel[0][0] / 5
-        publish_vel.linear.y = self.sira_vel[1][0] / 5
+        publish_vel.linear.x = self.sira_vel[0][0]
+        publish_vel.linear.y = self.sira_vel[1][0]
         publish_vel.linear.z = 0
         publish_vel.angular.x = 0
         publish_vel.angular.y = 0
-        publish_vel.angular.z = self.sira_vel[2][0] / 5
-        # self.follower_vel.publish(publish_vel)
+        publish_vel.angular.z = self.sira_vel[2][0]
+        self.follower_vel.publish(publish_vel)
         print(publish_vel)
 
         #Auxiliary Functions
