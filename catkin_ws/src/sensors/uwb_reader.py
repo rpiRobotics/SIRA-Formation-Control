@@ -8,6 +8,24 @@ import traceback
 import sys
 import serial.tools.list_ports
 
+
+# Serial Port Name of UWB's
+# dw48D3: ttyACM0
+# dw2A32: ttyACM1
+# dw43E6: ttyACM2
+#
+# 
+# dw0D40: ttyACM0
+# dw0418: ttyACM1
+# dw29EF: ttyACM2
+#
+# Note that only tags get readings
+port_to_uwb = {
+    'ttyACM0': 'dw48D3',
+    'ttyACM1': 'dw2A32',
+    'ttyACM2': 'dw43E6',
+
+}
 '''
 uwb_reader.py
 Alex Elias
@@ -18,15 +36,12 @@ Parameters:
     serial_port: e.g. '/dev/ttyS0'
     topic_name:  e.g. 'uwb_serial_front'
 '''
-
-
 class Uwb_reader:
     def __init__(self):
         rospy.init_node('uwb_reader', anonymous=True, disable_signals=True)
-        # self.serial_port = rospy.get_param('~serial_port')
-        self.serial_port = '/dev/ttyACM0'
-        # topic_name = rospy.get_param('~topic_name')
-        topic_name = 'uwb_reading'
+        self.serial_port = rospy.get_param('~serial_port')
+        # self.serial_port = '/dev/ttyACM0'
+        topic_name = rospy.get_param('~topic_name')
 
         self.ser = None
 
@@ -82,6 +97,7 @@ class Uwb_reader:
 
                 ser_bytes = self.ser.readline()
                 if(ser_bytes):
+                    ser_bytes = ser_bytes + ',' + port_to_uwb[self.serial_port]
                     self.pub.publish(ser_bytes)
                 else:
                     rospy.logwarn("Serial timeout occured")
