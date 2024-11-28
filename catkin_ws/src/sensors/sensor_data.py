@@ -8,10 +8,14 @@ from scipy.optimize import least_squares
 
 # antenna delay measured in meters
 delays = {
-    '29EF': .0560,
-    '0418': .1117,
-    '2A32': .1159,
-    '48D3': .0787,
+    '29EF': .0584,
+    '0418': .0515,
+    '2A32': .0490,
+    '48D3': .0129,
+    '43E6': .0549,
+    '0D40': .0929,
+    '48C4': .0645,
+    'C326': .0865,
 }
 
 # anchor to index within readings matrix
@@ -86,7 +90,7 @@ def calc_position(readings):
 
     return dist, theta
 
-def parse_reading(uwb_string: String):
+def parse_reading(uwb_string):
     # "DIST,4,AN0,2F2F,3.05,2.68,0.00,2.21,AN1,2C9D,-0.04,2.91,0.00,2.39,AN2,2ED0,3.02,0.00,0.00,2.19,AN3,2BA2,0.00,0.00,0.00,2.56,POS,1.59,1.65,1.27,44"
     # 'DIST', '3', 'AN0', '2A32', '0.00', '0.00', '0.00', '1.69', 'AN1', '38D3', '0.74' ...
     split_reading = uwb_string.strip().split(',')
@@ -94,7 +98,7 @@ def parse_reading(uwb_string: String):
     dists = split_reading[7::6]
     assert(len(anchors)==len(dists))
 
-    tag = split_reading[-1]
+    tag = split_reading[-1][2:]
     for i in range(len(dists)):
         dists[i] = float(dists[i])
         dists[i] += delays[tag]
