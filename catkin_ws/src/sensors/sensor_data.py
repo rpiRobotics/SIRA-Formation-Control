@@ -4,6 +4,7 @@ import rospy
 import time
 from std_msgs.msg import String
 import numpy as np
+from scipy.optimize import least_squares
 
 # antenna delay measured in meters
 delays = {
@@ -11,6 +12,19 @@ delays = {
     '0418': .1117,
     '2A32': .1159,
     '48D3': .0787,
+}
+
+# anchor to index within readings matrix
+anchor_indices = {
+    '43E6': 0,
+    '2A32': 1,
+    '48D3': 2,
+}
+# tag to index within readings matrix
+tag_indices = {
+    '0D40': 0,
+    '0418': 1,
+    '29Ef': 2,
 }
 
 #
@@ -74,7 +88,18 @@ def calc_position(readings):
 
 def parse_reading(uwb_string: String):
     # "DIST,4,AN0,2F2F,3.05,2.68,0.00,2.21,AN1,2C9D,-0.04,2.91,0.00,2.39,AN2,2ED0,3.02,0.00,0.00,2.19,AN3,2BA2,0.00,0.00,0.00,2.56,POS,1.59,1.65,1.27,44"
-    return uwb_string.strip().split(',')[7::6]
+    # 'DIST', '3', 'AN0', '2A32', '0.00', '0.00', '0.00', '1.69', 'AN1', '38D3', '0.74' ...
+    split_reading = uwb_string.strip().split(',')
+    anchors = split_reading[3::6]
+    dists = split_reading[7::6]
+    assert(len(anchors)==len(dists))
+
+    tag = split_reading[-1]
+    for i in range(len(dists)):
+        dists[i] = float(dists[i])
+        dists[i] += delays[tag]
+        dists[i] += delays[anchors[i]]
+    return tag, anchors, dists
 
 class Sensor:
     def __init__(self):
@@ -83,22 +108,31 @@ class Sensor:
         rospy.Subscriber(self.uwb_topic_name, String, self.uwb_callback, queue_size=1)
         self.dists_mat = np.zeros([4,4])
         self.dist_buffer_ = np.zeros([10])
+        # should be 16 readings
+        # list in form of [[r11, r12, r13, r14],[r21, r22, r23, r24],...]
+        # tag first, anchor second
+        self.readings = np.zeros([4,4])
+
 	
     def uwb_callback(self, data):
-        data = data.data.strip().split(',')
-        print(data)
-        delay_t = delays['2A32']
-        delay_a = delays['29EF']
-        # 2A32 is tag
-        dist = float(data[-1]) + delay_t + delay_a
+        # data = data.data.strip().split(',')
+        tag, anchors, dists = parse_reading(data.data)
+        for i in range(len(anchors)):
+            self.readings[tag_indices[tag],anchor_indices[anchors[i]]] = dists[i]
+        tag_mins = np.min(self.readings,axis=1)
+        tag_ind = np.argpartition(tag_mins,2)[:2]
+        calc_readings = (0,0,0,0)
+        for i in tag_ind:
+            an_ind = np.sort(np.argpartition(self.readings[i,:],2)[:2])
+            calc_readings[2*i] = self.readings[i,an_ind[0]]
+            calc_readings[2*i+1] = self.readings[i,an_ind[1]]
+
+        dist, angle = calc_position(calc_readings)
         self.dist_buffer_[:-1] = self.dist_buffer_[1:]
         self.dist_buffer_[-1] = dist
         print(np.mean(self.dist_buffer_))
-        # process data here
-        # find and store valid reading pairs
-        # add delay values
-        # call calc_position to get relative distance and angle between robots
-
+        print(angle/np.pi*180)
+        
 if __name__ == '__main__':
     sensor = Sensor()
     rospy.spin()

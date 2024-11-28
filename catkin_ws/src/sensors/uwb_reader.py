@@ -21,9 +21,9 @@ import serial.tools.list_ports
 #
 # Note that only tags get readings
 port_to_uwb = {
-    'ttyACM0': 'dw48D3',
-    'ttyACM1': 'dw2A32',
-    'ttyACM2': 'dw43E6',
+    '/dev/ttyACM0': 'dw0D40',
+    '/dev/ttyACM1': 'dw0418',
+    '/dev/ttyACM2': 'dw29EF',
 
 }
 '''
