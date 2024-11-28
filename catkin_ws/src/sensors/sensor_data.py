@@ -23,12 +23,14 @@ anchor_indices = {
     '43E6': 0,
     '2A32': 1,
     '48D3': 2,
+    'C326': 3,
 }
 # tag to index within readings matrix
 tag_indices = {
     '0D40': 0,
     '0418': 1,
     '29Ef': 2,
+    '48C4': 3,
 }
 
 #
@@ -94,8 +96,10 @@ def parse_reading(uwb_string):
     # "DIST,4,AN0,2F2F,3.05,2.68,0.00,2.21,AN1,2C9D,-0.04,2.91,0.00,2.39,AN2,2ED0,3.02,0.00,0.00,2.19,AN3,2BA2,0.00,0.00,0.00,2.56,POS,1.59,1.65,1.27,44"
     # 'DIST', '3', 'AN0', '2A32', '0.00', '0.00', '0.00', '1.69', 'AN1', '38D3', '0.74' ...
     split_reading = uwb_string.strip().split(',')
-    anchors = split_reading[3::6]
-    dists = split_reading[7::6]
+
+    # TODO(fan.du): This is a temporary fix as 4 anchors messes up indexing with extra fields
+    anchors = split_reading[3:-5:6]
+    dists = split_reading[7:-1:6]
     assert(len(anchors)==len(dists))
 
     tag = split_reading[-1][2:]
@@ -115,7 +119,7 @@ class Sensor:
         # should be 16 readings
         # list in form of [[r11, r12, r13, r14],[r21, r22, r23, r24],...]
         # tag first, anchor second
-        self.readings = np.zeros([4,4])
+        self.readings = np.full([4,4], np.nan)
 
 	
     def uwb_callback(self, data):
@@ -125,7 +129,7 @@ class Sensor:
             self.readings[tag_indices[tag],anchor_indices[anchors[i]]] = dists[i]
         tag_mins = np.min(self.readings,axis=1)
         tag_ind = np.argpartition(tag_mins,2)[:2]
-        calc_readings = (0,0,0,0)
+        calc_readings = [0,0,0,0]
         for i in tag_ind:
             an_ind = np.sort(np.argpartition(self.readings[i,:],2)[:2])
             calc_readings[2*i] = self.readings[i,an_ind[0]]
