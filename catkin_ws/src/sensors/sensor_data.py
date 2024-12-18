@@ -25,6 +25,7 @@ anchor_indices = {
     '48D3': 2,
     'C326': 3,
 }
+
 # tag to index within readings matrix
 tag_indices = {
     '0D40': 0,
@@ -33,6 +34,29 @@ tag_indices = {
     '48C4': 3,
 }
 
+
+class DistEstimator:
+    def __init__(self):
+        self.readings = np.zeros(4)
+                
+    def set_readings(self,readings):
+        self.readings = np.array(readings)
+        
+    def least_squares_loss(self, estimates):
+        d_ta = 0.25
+        
+        theta = estimates[2]
+        x = estimates[0]
+        y = estimates[1]
+        # given estimate for front sensor at (x,y) and angle theta, calculate loss
+        # (x,y) is defined with origin from tag1
+        back_x = x+d_ta*np.sin(theta)
+        back_y = y-d_ta*np.cos(theta)
+        readings = [np.sqrt(x**2 + y**2),\
+                    np.sqrt(back_x**2+back_y**2),\
+                    np.sqrt(x**2 + (y+d_ta)**2),\
+                    np.sqrt(back_x**2 + (back_y+d_ta)**2)]
+        return self.readings-readings
 #
 
 # for anchor tag setup:
@@ -120,6 +144,17 @@ class Sensor:
         # list in form of [[r11, r12, r13, r14],[r21, r22, r23, r24],...]
         # tag first, anchor second
         self.readings = np.full([4,4], np.nan)
+        self.estimator = DistEstimator()
+
+    def estimate_position(self,readings):
+        x0 = np.array([0,0,0])
+        self.estimator.set_readings(readings)
+        result = least_squares(self.estimator.least_squares_loss,x0)
+        angle = result.x[-1]/np.pi*180
+        dist = 0 
+        #TODO(fan.du): use tf2 for position transforms
+
+        return dist, angle
 
 	
     def uwb_callback(self, data):
