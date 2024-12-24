@@ -1,3 +1,9 @@
+# this is the list of transforms
+# rosrun tf2_ros static_transform_publisher -.29 -.2  h 0 0 0 sirab_base tag1
+# rosrun tf2_ros static_transform_publisher  .29 -.2 -h 0 0 0 anchor1 sirar_base
+# where h is height from ground to uwb
+# this node calculates the necessary transforms from tag1 to anchor1
+
 #!/usr/bin/env python
 
 import rospy
@@ -5,6 +11,9 @@ import time
 from std_msgs.msg import String
 import numpy as np
 from scipy.optimize import least_squares
+import tf2_ros
+import geometry_msgs.msg
+import tf_conversions
 
 # antenna delay measured in meters
 delays = {
@@ -116,6 +125,24 @@ def calc_position(readings):
 
     return dist, theta
 
+def publish_transform(coord, rotation):
+    br = tf2_ros.TransformBroadcaster()
+    t = geometry_msgs.msg.TransformStamped()
+
+    t.header.stamp = rospy.Time.now()
+    t.header.frame_id = 'tag1'
+    t.child_frame_id = 'anchor1'
+    t.transform.translation.x = coord[0]
+    t.transform.translation.y = coord[1]
+    t.transform.translation.z = 0.0
+    q = tf_conversions.transformations.quaternion_from_euler(0, 0, rotation)
+    t.transform.rotation.x = q[0]
+    t.transform.rotation.y = q[1]
+    t.transform.rotation.z = q[2]
+    t.transform.rotation.w = q[3]
+
+    br.sendTransform(t)
+
 def parse_reading(uwb_string):
     # "DIST,4,AN0,2F2F,3.05,2.68,0.00,2.21,AN1,2C9D,-0.04,2.91,0.00,2.39,AN2,2ED0,3.02,0.00,0.00,2.19,AN3,2BA2,0.00,0.00,0.00,2.56,POS,1.59,1.65,1.27,44"
     # 'DIST', '3', 'AN0', '2A32', '0.00', '0.00', '0.00', '1.69', 'AN1', '38D3', '0.74' ...
@@ -133,7 +160,7 @@ def parse_reading(uwb_string):
         dists[i] += delays[anchors[i]]
     return tag, anchors, dists
 
-class Sensor:
+class UwbTransform:
     def __init__(self):
         rospy.init_node('sensor_test', anonymous=False)
         self.uwb_topic_name =  rospy.get_param('~uwb_topic_name')
@@ -151,10 +178,10 @@ class Sensor:
         self.estimator.set_readings(readings)
         result = least_squares(self.estimator.least_squares_loss,x0)
         angle = result.x[-1]/np.pi*180
-        dist = 0 
+        coord =  np.array([result.x[1],result.x[0]*-1])
         #TODO(fan.du): use tf2 for position transforms
 
-        return dist, angle
+        return coord, angle
 
 	
     def uwb_callback(self, data):
@@ -170,12 +197,14 @@ class Sensor:
             calc_readings[2*i] = self.readings[i,an_ind[0]]
             calc_readings[2*i+1] = self.readings[i,an_ind[1]]
 
-        dist, angle = calc_position(calc_readings)
-        self.dist_buffer_[:-1] = self.dist_buffer_[1:]
-        self.dist_buffer_[-1] = dist
+        # dist, angle = calc_position(calc_readings)
+        # self.dist_buffer_[:-1] = self.dist_buffer_[1:]
+        # self.dist_buffer_[-1] = dist
+        coord, angle = self.estimate_position(calc_readings)
+        publish_transform(coord,angle)
         print(np.mean(self.dist_buffer_))
         print(angle/np.pi*180)
         
 if __name__ == '__main__':
-    sensor = Sensor()
+    uwb = UwbTransform()
     rospy.spin()
