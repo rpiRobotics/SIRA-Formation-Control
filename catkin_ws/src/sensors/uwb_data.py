@@ -39,7 +39,7 @@ anchor_indices = {
 tag_indices = {
     '0D40': 0,
     '0418': 1,
-    '29Ef': 2,
+    '29EF': 2,
     '48C4': 3,
 }
 
@@ -162,7 +162,7 @@ def parse_reading(uwb_string):
 
 class UwbTransform:
     def __init__(self):
-        rospy.init_node('sensor_test', anonymous=False)
+        rospy.init_node('uwb_transform', anonymous=False)
         self.uwb_topic_name =  rospy.get_param('~uwb_topic_name')
         rospy.Subscriber(self.uwb_topic_name, String, self.uwb_callback, queue_size=1)
         self.dists_mat = np.zeros([4,4])
@@ -200,6 +200,10 @@ class UwbTransform:
         # dist, angle = calc_position(calc_readings)
         # self.dist_buffer_[:-1] = self.dist_buffer_[1:]
         # self.dist_buffer_[-1] = dist
+
+        # TODO(fan.du): implement lookup table of tag anchor combinations to transformation
+        # decompose overall transformation to estimate (lsq) + orientation (ta lookup, should just be a rotation)
+
         coord, angle = self.estimate_position(calc_readings)
         publish_transform(coord,angle)
         print(np.mean(self.dist_buffer_))
