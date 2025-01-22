@@ -1,6 +1,7 @@
-# This node is for estimating uwb delays using onboard data
-
 #!/usr/bin/env python
+
+# This node is for estimating uwb delays using onboard data
+# and data visualization
 
 from uwb_data import *
 import sys
@@ -28,33 +29,38 @@ class DelayEstimator:
         # list in form of [[r11, r12, r13, r14],[r21, r22, r23, r24],...]
         # tag first, anchor second
         self.readings = np.full([self.num_readings,4,4], np.nan)
-        self.fill_ind = 0
 
-        # temporary hack since not using one tag
+        # 4 tags so need 4 different indices to track
+        self.read_indices = np.array([0,0,0,0])
+
+        # temporary hack since using 3 tags only
         self.readings[:,-1,:] = np.zeros([self.num_readings,4])
+        self.read_indices[-1] = self.num_readings
 
-    
-    # def lsq_loss(self,delays):
-        
-        
     def uwb_callback(self, data):
         # data = data.data.strip().split(',')
-        # 4 tags so need 4 different indices to track
-        read_indices = np.array([0,0,0,0])
-        if np.isnan(np.sum(self.readings)):
+            
+        # if np.isnan(np.sum(self.readings)):
+
+            # NOTE: this is a temporary workaround for the following issue:
+            # sometimes tags only get 3 readings instead of 4 and thus a nan is leftover
+            # a proper fix would involve tracking the anchor indices but currently we delete
+            # the nan rows
+        if np.sum(self.read_indices) < 4*self.num_readings:
+
             tag, anchors, dists = parse_reading(data.data)
-            if read_indices[tag_indices[tag]] < self.num_readings:
+            if self.read_indices[tag_indices[tag]] < self.num_readings:
                 for i in range(len(anchors)):
-                    self.readings[read_indices[tag_indices[tag]],tag_indices[tag],anchor_indices[anchors[i]]] = dists[i]
-                read_indices[tag_indices[tag]] += 1
+                    self.readings[self.read_indices[tag_indices[tag]],tag_indices[tag],anchor_indices[anchors[i]]] = dists[i]
+                self.read_indices[tag_indices[tag]] += 1
         
-        # if self.fill_ind < self.num_readings:
-        
-        #     tag, anchors, dists = parse_reading(data.data)
-        #     for i in range(len(anchors)):
-        #         self.readings[self.fill_ind,tag_indices[tag],anchor_indices[anchors[i]]] = dists[i]
-        #     self.fill_ind += 1
         else:
+
+            # NOTE: see previous note
+            if np.isnan(np.sum(self.readings)):
+                print('nans present, eliminating nan rows')
+                self.readings = np.delete(self.readings, np.all(np.isnan(self.readings), axis=(1,2)),axis=0)
+            print(self.readings.shape)
             assert(not np.isnan(np.sum(self.readings)))
 
             avg = np.mean(self.readings,axis=0)
