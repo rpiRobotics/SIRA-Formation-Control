@@ -142,6 +142,7 @@ def publish_transform(coord, rotation):
     t.transform.rotation.w = q[3]
 
     br.sendTransform(t)
+    return t
 
 def parse_reading(uwb_string):
     # "DIST,4,AN0,2F2F,3.05,2.68,0.00,2.21,AN1,2C9D,-0.04,2.91,0.00,2.39,AN2,2ED0,3.02,0.00,0.00,2.19,AN3,2BA2,0.00,0.00,0.00,2.56,POS,1.59,1.65,1.27,44"
@@ -164,6 +165,8 @@ class UwbTransform:
     def __init__(self):
         rospy.init_node('uwb_transform', anonymous=False)
         self.uwb_topic_name =  rospy.get_param('~uwb_topic_name')
+        self.publish_to_plot = rospy.get_param('~plot_uwb', False)
+        self.plot_pub = rospy.Publisher('uwb_plot', geometry_msgs.msg.TransformStamped, queue_size=1)
         rospy.Subscriber(self.uwb_topic_name, String, self.uwb_callback, queue_size=1)
         self.dists_mat = np.zeros([4,4])
         self.dist_buffer_ = np.zeros([10])
@@ -205,7 +208,9 @@ class UwbTransform:
         # decompose overall transformation to estimate (lsq) + orientation (ta lookup, should just be a rotation)
 
         coord, angle = self.estimate_position(calc_readings)
-        publish_transform(coord,angle)
+        tf = publish_transform(coord,angle)
+        if self.publish_to_plot:
+            self.plot_pub.publish(tf)
         print(np.mean(self.dist_buffer_))
         print(angle/np.pi*180)
         

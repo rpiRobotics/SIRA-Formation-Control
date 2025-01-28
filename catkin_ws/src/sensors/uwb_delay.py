@@ -7,7 +7,6 @@
 #   might be due to numpy version not treating binary as mask, check if argwhere fixes
 
 from uwb_data import *
-import sys
 import matplotlib.pyplot as plt
 
 # set delays to 0 to use raw readings in parse
@@ -88,23 +87,27 @@ class DelayEstimator:
         
         # need to solve system r_vec = gt_vec + [1 0 1 0;1 0 0 1;0 1 1 0;0 1 0 1] * delay_vec
         # = r_vec - gt_vec (b) = [1 0 1 0;1 0 0 1;0 1 1 0;0 1 0 1] (a) * delay_vec (x)
+        # NOTE: matrix is singular, need to use least squares to take into account geometric constraints
         a = np.array([[1,0,1,0],[1,0,0,1],[0,1,1,0],[0,1,0,1]])
         b = np.array([r11,r12,r21,r22])
         b = b - np.array([gt11,gt12,gt21,gt22])
-        delays = np.linalg.solve(a,b)
-        print(delays)
-        new_est = np.array([r11,r12,r21,r22]) + a * delays
-        print(new_est)
+        # delays = np.linalg.solve(a,b)
+        # print(delays)
+        # new_est = np.array([r11,r12,r21,r22]) + a * delays
+        # print(new_est)
         fig, axs = plt.subplots(4,4)
         for i in range(4):
             for j in range(4):
-                count, bins = np.histogram(self.readings[:,i,j])
-                axs[i,j].hist(count,bins)
+                axs[i,j].hist(self.readings[:,i,j])
+        print('std')
+        print(np.std(self.readings, axis=0))
+        print('means')
+        print(np.mean(self.readings, axis=0))
         plt.show()
             
 
 if __name__ == '__main__':
     delays = DelayEstimator()
-    while not delays.check_full:
+    while not delays.check_full():
         pass
     delays.calc_delays()
