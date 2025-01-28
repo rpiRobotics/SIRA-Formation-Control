@@ -1,10 +1,10 @@
+#!/usr/bin/env python
+
 # this is the list of transforms
 # rosrun tf2_ros static_transform_publisher -.29 -.2  h 0 0 0 sirab_base tag1
 # rosrun tf2_ros static_transform_publisher  .29 -.2 -h 0 0 0 anchor1 sirar_base
 # where h is height from ground to uwb
 # this node calculates the necessary transforms from tag1 to anchor1
-
-#!/usr/bin/env python
 
 import rospy
 import time

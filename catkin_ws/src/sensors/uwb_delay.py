@@ -57,6 +57,7 @@ class DelayEstimator:
                 for i in range(len(anchors)):
                     self.readings[self.read_indices[tag_indices[tag]],tag_indices[tag],anchor_indices[anchors[i]]] = dists[i]
                 self.read_indices[tag_indices[tag]] += 1
+            print(self.read_indices)
 
     def calc_delays(self):
         # NOTE: see uwb_callback note

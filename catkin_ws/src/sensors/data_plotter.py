@@ -28,6 +28,8 @@ class UwbPlotter:
             self.data[self.ind,1] = tf.translation.y
             self.data[self.ind,2] = np.linalg.norm(self.data[self.ind,0:2])
             self.data[self.ind,3] = tf_conversions.transformations.euler_from_quaternion(tf.rotation)
+            self.ind+=1
+            print(self.ind)
 
     def check_full(self):
         return self.ind>=self.num_readings
