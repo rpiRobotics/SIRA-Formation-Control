@@ -8,7 +8,6 @@ import numpy as np
 import tf2_ros
 import geometry_msgs.msg
 import tf_conversions
-from seaborn import jointplot
 import matplotlib.pyplot as plt
 
 class UwbPlotter:
@@ -35,10 +34,16 @@ class UwbPlotter:
         return self.ind>=self.num_readings
     
     def plot(self):
-        jointplot(x=self.data[:,0],y=self.data[:,1])
+        plt.hist2d(self.data[:,0],self.data[:,1])
         print('stds')
         print(np.std(self.data,axis=0))
         print('means')
         print(np.mean(self.data,axis=0))
         plt.hist(self.data[:,-1])
         plt.show()
+
+if __name__=='__main__':
+    plotter = UwbPlotter()
+    while not plotter.check_full():
+        pass
+    plotter.plot()
