@@ -26,7 +26,8 @@ class UwbPlotter:
             self.data[self.ind,0] = tf.translation.x
             self.data[self.ind,1] = tf.translation.y
             self.data[self.ind,2] = np.linalg.norm(self.data[self.ind,0:2])
-            self.data[self.ind,3] = tf_conversions.transformations.euler_from_quaternion(tf.rotation)
+            quart = [tf.rotation.x,tf.rotation.y,tf.rotation.z,tf.rotation.w]
+            self.data[self.ind,3] = tf_conversions.transformations.euler_from_quaternion(quart)[-1]
             self.ind+=1
             print(self.ind)
 
