@@ -180,7 +180,7 @@ class UwbTransform:
         x0 = np.array([0,0,0])
         self.estimator.set_readings(readings)
         result = least_squares(self.estimator.least_squares_loss,x0)
-        angle = result.x[-1]/np.pi*180
+        angle = result.x[-1]
         coord =  np.array([result.x[1],result.x[0]*-1])
         #TODO(fan.du): use tf2 for position transforms
 
