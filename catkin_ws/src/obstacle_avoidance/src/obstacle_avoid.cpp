@@ -106,6 +106,11 @@ public:
 		// Clear previous data
 		distances.clear();
 		angles.clear();
+
+		// Check if data being received through subscriber
+		if (msg->circles.empty() && msg->segments.empty()) {
+			ROS_INFO ("No laser scan obstacles being read. :(");
+		}
 		
 		// Determine length of segment & circle arrays
 		int circles_length = sizeof(msg->circles) / sizeof(msg->circles[0]);
@@ -129,6 +134,9 @@ public:
 
 			distances.push_back(distance);
 			angles.push_back(angle);
+
+			// Publish distances to see if outliers
+			ROS_INFO ("Circle Distance: %f", distance);
 		}
 		
 		// Process Segements
@@ -153,6 +161,9 @@ public:
 
 			distances.push_back(distance);
 			angles.push_back(angle);
+
+			// Publish distances to see if outliers
+			ROS_INFO ("Segment Distance: %f", distance);
 		}
 
         std_msgs::Bool allow;
