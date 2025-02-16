@@ -4,11 +4,11 @@
 obstacle_avoidance/CMakeFiles/obstacle_avoid.dir/src/obstacle_avoid.cpp.o: /home/annabel/SIRA-Formation-Control/catkin_ws/devel/include/obstacle_detector/CircleObstacle.h
 obstacle_avoidance/CMakeFiles/obstacle_avoid.dir/src/obstacle_avoid.cpp.o: /home/annabel/SIRA-Formation-Control/catkin_ws/devel/include/obstacle_detector/Obstacles.h
 obstacle_avoidance/CMakeFiles/obstacle_avoid.dir/src/obstacle_avoid.cpp.o: /home/annabel/SIRA-Formation-Control/catkin_ws/devel/include/obstacle_detector/SegmentObstacle.h
-obstacle_avoidance/CMakeFiles/obstacle_avoid.dir/src/obstacle_avoid.cpp.o: /home/annabel/SIRA-Formation-Control/catkin_ws/src/SIRA-obstacle_detector-master/include/obstacle_detector/utilities/circle.h
-obstacle_avoidance/CMakeFiles/obstacle_avoid.dir/src/obstacle_avoid.cpp.o: /home/annabel/SIRA-Formation-Control/catkin_ws/src/SIRA-obstacle_detector-master/include/obstacle_detector/utilities/point.h
-obstacle_avoidance/CMakeFiles/obstacle_avoid.dir/src/obstacle_avoid.cpp.o: /home/annabel/SIRA-Formation-Control/catkin_ws/src/SIRA-obstacle_detector-master/include/obstacle_detector/utilities/point_set.h
-obstacle_avoidance/CMakeFiles/obstacle_avoid.dir/src/obstacle_avoid.cpp.o: /home/annabel/SIRA-Formation-Control/catkin_ws/src/SIRA-obstacle_detector-master/include/obstacle_detector/utilities/segment.h
 obstacle_avoidance/CMakeFiles/obstacle_avoid.dir/src/obstacle_avoid.cpp.o: /home/annabel/SIRA-Formation-Control/catkin_ws/src/obstacle_avoidance/src/obstacle_avoid.cpp
+obstacle_avoidance/CMakeFiles/obstacle_avoid.dir/src/obstacle_avoid.cpp.o: /home/annabel/SIRA-Formation-Control/catkin_ws/src/obstacle_detector/include/obstacle_detector/utilities/circle.h
+obstacle_avoidance/CMakeFiles/obstacle_avoid.dir/src/obstacle_avoid.cpp.o: /home/annabel/SIRA-Formation-Control/catkin_ws/src/obstacle_detector/include/obstacle_detector/utilities/point.h
+obstacle_avoidance/CMakeFiles/obstacle_avoid.dir/src/obstacle_avoid.cpp.o: /home/annabel/SIRA-Formation-Control/catkin_ws/src/obstacle_detector/include/obstacle_detector/utilities/point_set.h
+obstacle_avoidance/CMakeFiles/obstacle_avoid.dir/src/obstacle_avoid.cpp.o: /home/annabel/SIRA-Formation-Control/catkin_ws/src/obstacle_detector/include/obstacle_detector/utilities/segment.h
 obstacle_avoidance/CMakeFiles/obstacle_avoid.dir/src/obstacle_avoid.cpp.o: /opt/ros/noetic/include/geometry_msgs/Point.h
 obstacle_avoidance/CMakeFiles/obstacle_avoid.dir/src/obstacle_avoid.cpp.o: /opt/ros/noetic/include/geometry_msgs/Point32.h
 obstacle_avoidance/CMakeFiles/obstacle_avoid.dir/src/obstacle_avoid.cpp.o: /opt/ros/noetic/include/geometry_msgs/PointStamped.h
