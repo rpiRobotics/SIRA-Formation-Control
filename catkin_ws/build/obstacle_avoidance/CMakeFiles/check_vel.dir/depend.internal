@@ -64,5 +64,6 @@ obstacle_avoidance/CMakeFiles/check_vel.dir/src/check_vel.cpp.o
  /opt/ros/noetic/include/std_msgs/Bool.h
  /opt/ros/noetic/include/std_msgs/Float64.h
  /opt/ros/noetic/include/std_msgs/Header.h
+ /opt/ros/noetic/include/std_msgs/Int32.h
  /opt/ros/noetic/include/xmlrpcpp/XmlRpcDecl.h
  /opt/ros/noetic/include/xmlrpcpp/XmlRpcValue.h

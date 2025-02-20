@@ -2,7 +2,9 @@
 #include <geometry_msgs/Twist.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float64.h>
+#include <std_msgs/Int32.h>
 #include "ros/ros.h"
+#include <cmath>
 
 class VelocityFilter {
 private:
@@ -13,6 +15,7 @@ private:
     ros::Publisher vel_pub;
     
     bool is_allowed;
+    //int action_allowed;
     geometry_msgs::Twist last_vel;
     double current_angle;  // Store the most recent angle
 
@@ -71,6 +74,53 @@ public:
         }
     }
 
+    // void velCallback(const geometry_msgs::Twist::ConstPtr& msg) {
+    //     last_vel = *msg;
+    //     double lin_x = last_vel.linear.x;
+    //     double lin_y = last_vel.linear.y;
+        
+    //     if ((action_allowed == -1) && validVelocity(msg->linear.x, msg->linear.y, msg->angular.z)) {
+    //         vel_pub.publish(last_vel);
+    //     }
+    //     // Make velocity reverse, at a rate of 0.25 
+    //     else if (action_allowed = 1) {
+    //         geometry_msgs::Twist rebound_vel;
+    //         rebound_vel.linear.x = lin_x * -0.1;
+    //         rebound_vel.linear.y = lin_y * -0.1;
+    //         vel_pub.publish(rebound_vel);
+    //     } 
+    //     // Stop if too close
+    //     else if (action_allowed = 2) {
+    //         geometry_msgs::Twist zero_vel;
+    //         vel_pub.publish(zero_vel);
+    //     } 
+    //     // Slow down if heading in direction of obstacle & speed is 0.5 or above
+    //     else if (action_allowed = 3) {
+    //         if (abs(current_angle - (atan2(lin_y, lin_x))) > M_PI*0.5) {
+    //             vel_pub.publish(last_vel);
+    //         }
+    //         else {
+    //             geometry_msgs::Twist slow_vel;
+    //             slow_vel = last_vel;
+    //             if (lin_x > 0.35) {
+    //                 slow_vel.linear.x = 0.35;
+    //             }
+    //             else if (lin_x < -0.35) {
+    //                 slow_vel.linear.x = -0.35;
+    //             }
+
+    //             if (lin_y > 0.35) {
+    //                 slow_vel.linear.y = 0.35;
+    //             }
+    //             else if (lin_y < -0.35) {
+    //                 slow_vel.linear.y = -0.35;
+    //             }
+    //             vel_pub.publish(slow_vel);
+    //         }
+            
+    //     }
+    // }
+
     void allowCallback(const std_msgs::Bool::ConstPtr& msg) {
         is_allowed = (msg->data == true);
         if (!is_allowed) {
@@ -78,6 +128,14 @@ public:
             vel_pub.publish(zero_vel);
         }
     }
+    
+    // void allowCallback(const std_msgs::Int32::ConstPtr& msg) {
+    //     action_allowed = msg->data;
+    //     if (action_allowed == 2) {
+    //         geometry_msgs::Twist zero_vel;
+    //         vel_pub.publish(zero_vel);
+    //     }
+    // }
 };
 
 int main(int argc, char **argv) {

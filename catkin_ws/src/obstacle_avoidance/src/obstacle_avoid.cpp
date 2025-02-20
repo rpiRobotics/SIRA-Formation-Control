@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float64.h>
+#include <std_msgs/Int32.h>
 #include <ros/time.h>
 #include <obstacle_detector/Obstacles.h>
 #include <tf/transform_listener.h>
@@ -30,6 +31,8 @@ private:
 
 	// Constants
 	const double STOP_ZONE = 0.25;
+	const double SLOW_ZONE = 1.0;
+	const double REBOUND_ZONE = 0.15;
 	const double SIRA_RADIUS = 0.6225851;
 
 	// Distance & Angles
@@ -89,6 +92,23 @@ private:
         return -1;
     }
 	
+	int needSlow() {
+        if (distances.empty()) return -1;
+        auto min_it = std::min_element(distances.begin(), distances.end());
+        if (*min_it <= SLOW_ZONE) {
+            return std::distance(distances.begin(), min_it);
+        }
+        return -1;
+    }
+
+	int needRebound() {
+        if (distances.empty()) return -1;
+        auto min_it = std::min_element(distances.begin(), distances.end());
+        if (*min_it <= REBOUND_ZONE) {
+            return std::distance(distances.begin(), min_it);
+        }
+        return -1;
+    }
 
 
 public:
@@ -98,6 +118,7 @@ public:
 
 		// Intialize Publishers
 		velocity_interrupt = n.advertise<std_msgs::Bool>("/interrupt", 1000);
+		//velocity_interrupt = n.advertise<std_msgs::Int32>("/interrupt", 1000);
 		angle_interrupt = n.advertise<std_msgs::Float64>("/obstacle_angle", 1000);
 	}	
 
@@ -171,6 +192,30 @@ public:
         std_msgs::Float64 angle_msg;
 
         int j = needStop();
+
+		// std_msgs::Int32 avoid_action;
+		// int k = needSlow();
+		// int l = needRebound();
+
+		// if (l != -1) {
+		// 	avoid_action.data = 1;
+		// 	angle_msg.data = angles[l];
+		// }
+		// else if (j != -1) {
+		// 	avoid_action.data = 2;
+		// 	angle_msg.data = angles[j];
+		// }
+		// else if (k != -1) {
+		// 	avoid_action.data = 3;
+		// 	angle_msg.data = angles[k];
+		// }
+		// else {
+		// 	avoid_action.data = -1;
+		// }
+
+		// angle_interrupt.publish(angle_msg);
+		// velocity_interrupt.publish(avoid_action);
+		
         if (j != -1) {
             allow.data = false;
             angle_msg.data = angles[j];

@@ -86,6 +86,7 @@ obstacle_avoidance/CMakeFiles/obstacle_avoid.dir/src/obstacle_avoid.cpp.o: /opt/
 obstacle_avoidance/CMakeFiles/obstacle_avoid.dir/src/obstacle_avoid.cpp.o: /opt/ros/noetic/include/std_msgs/Empty.h
 obstacle_avoidance/CMakeFiles/obstacle_avoid.dir/src/obstacle_avoid.cpp.o: /opt/ros/noetic/include/std_msgs/Float64.h
 obstacle_avoidance/CMakeFiles/obstacle_avoid.dir/src/obstacle_avoid.cpp.o: /opt/ros/noetic/include/std_msgs/Header.h
+obstacle_avoidance/CMakeFiles/obstacle_avoid.dir/src/obstacle_avoid.cpp.o: /opt/ros/noetic/include/std_msgs/Int32.h
 obstacle_avoidance/CMakeFiles/obstacle_avoid.dir/src/obstacle_avoid.cpp.o: /opt/ros/noetic/include/tf/FrameGraph.h
 obstacle_avoidance/CMakeFiles/obstacle_avoid.dir/src/obstacle_avoid.cpp.o: /opt/ros/noetic/include/tf/FrameGraphRequest.h
 obstacle_avoidance/CMakeFiles/obstacle_avoid.dir/src/obstacle_avoid.cpp.o: /opt/ros/noetic/include/tf/FrameGraphResponse.h
