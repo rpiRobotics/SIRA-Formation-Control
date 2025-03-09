@@ -133,12 +133,9 @@ public:
 			ROS_INFO ("No laser scan obstacles being read. :(");
 		}
 		
-		// Determine length of segment & circle arrays
-		int circles_length = sizeof(msg->circles) / sizeof(msg->circles[0]);
-		int segments_length = sizeof(msg->segments) / sizeof(msg->segments[0]);
 
 		// Process Circles
-		for (int i = 0; i < circles_length; i++) {
+		for (int i = 0; i < msg->circles.size(); i++) {
 			// Get Circle Data
 			double x_center = msg->circles[i].center.x;
 			double y_center = msg->circles[i].center.y;
@@ -161,7 +158,7 @@ public:
 		}
 		
 		// Process Segements
-		for (int i = 0; i < segments_length; i++) {
+		for (int i = 0; i < msg->segments.size(); i++) {
 			// Get Segment Data
 			double x1 = msg->segments[i].first_point.x;
 			double y1 = msg->segments[i].first_point.y;
