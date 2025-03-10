@@ -1,0 +1,10 @@
+<launch>
+    <!-- Launch check_vel node in a new terminal -->
+    <node name="check_vel" pkg="obstacle_avoidance" type="check_vel" output="screen" launch-prefix="xterm -e"/>
+
+    <!-- Launch lidar base static tf publisher in a new terminal -->
+    <node name="lidar_base_static_tf_pub" pkg="obstacle_avoidance" type="lidar_base_static_tf_pub" output="screen" launch-prefix="xterm -e"/>
+
+    <!-- Launch obstacle avoidance node in a new terminal -->
+    <node name="obstacle_avoid" pkg="obstacle_avoidance" type="obstacle_avoid" output="screen" launch-prefix="xterm -e"/>
+</launch>
