@@ -183,12 +183,12 @@ class UwbTransform:
         # init guess used to be zero vector
         init_x = readings[2]**2-readings[1]**2
         # init_y = (readings[0]+readings[3])/2
-        init_y = -np.sqrt(readings[0]**2-init_x**2)
+        init_y = -1*np.sqrt(readings[0]**2-init_x**2)
         x0 = np.array([init_x,init_y,0])
         self.estimator.set_readings(readings)
         result = least_squares(self.estimator.least_squares_loss,x0)
         angle = result.x[-1]
-        coord =  np.array([result.x[1],result.x[0]*-1])
+        coord =  np.array([result.x[0],result.x[1]])
         #TODO(fan.du): use tf2 for position transforms
 
         return coord, angle
