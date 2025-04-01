@@ -168,6 +168,7 @@ class UwbTransform:
         self.publish_to_plot = rospy.get_param('~plot_uwb', False)
         self.plot_pub = rospy.Publisher('uwb_plot', geometry_msgs.msg.TransformStamped, queue_size=1)
         rospy.Subscriber(self.uwb_topic_name, String, self.uwb_callback, queue_size=1)
+        self.readings_pub = rospy.Publisher('uwb_raw',Float32MultiArray,queue_size=1)
         self.dists_mat = np.zeros([4,4])
         self.dist_buffer_ = np.zeros([10])
         # should be 16 readings
@@ -177,7 +178,11 @@ class UwbTransform:
         self.estimator = DistEstimator()
 
     def estimate_position(self,readings):
-        x0 = np.array([0,0,0])
+        # readings order r11 r12 r21 r22
+        # init guess used to be zero vector
+        init_x = readings[2]**2-readings[1]**2
+        init_y = (readings[0]+readings[3])/2
+        x0 = np.array([init_x,init_y,0])
         self.estimator.set_readings(readings)
         result = least_squares(self.estimator.least_squares_loss,x0)
         angle = result.x[-1]
@@ -192,6 +197,8 @@ class UwbTransform:
         tag, anchors, dists = parse_reading(data.data)
         for i in range(len(anchors)):
             self.readings[tag_indices[tag],anchor_indices[anchors[i]]] = dists[i]
+
+        self.readings_pub.publish(self.readings.tolist())
         tag_mins = np.min(self.readings,axis=1)
         tag_ind = np.argpartition(tag_mins,2)[:2]
         calc_readings = [0,0,0,0]
