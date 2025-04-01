@@ -14,6 +14,7 @@ from scipy.optimize import least_squares
 import tf2_ros
 import geometry_msgs.msg
 import tf_conversions
+from std_msgs.msg import Float32MultiArray
 
 # antenna delay measured in meters
 delays = {
@@ -59,12 +60,12 @@ class DistEstimator:
         y = estimates[1]
         # given estimate for front sensor at (x,y) and angle theta, calculate loss
         # (x,y) is defined with origin from tag1
-        back_x = x+d_ta*np.sin(theta)
-        back_y = y-d_ta*np.cos(theta)
+        back_x = x-d_ta*np.cos(theta)
+        back_y = y-d_ta*np.sin(theta)
         readings = [np.sqrt(x**2 + y**2),\
                     np.sqrt(back_x**2+back_y**2),\
-                    np.sqrt(x**2 + (y+d_ta)**2),\
-                    np.sqrt(back_x**2 + (back_y+d_ta)**2)]
+                    np.sqrt((x+d_ta)**2 + y**2),\
+                    np.sqrt((back_x+d_ta)**2 + back_y**2)]
         return self.readings-readings
 #
 
@@ -181,7 +182,8 @@ class UwbTransform:
         # readings order r11 r12 r21 r22
         # init guess used to be zero vector
         init_x = readings[2]**2-readings[1]**2
-        init_y = (readings[0]+readings[3])/2
+        # init_y = (readings[0]+readings[3])/2
+        init_y = -np.sqrt(readings[0]**2-init_x**2)
         x0 = np.array([init_x,init_y,0])
         self.estimator.set_readings(readings)
         result = least_squares(self.estimator.least_squares_loss,x0)
@@ -198,7 +200,7 @@ class UwbTransform:
         for i in range(len(anchors)):
             self.readings[tag_indices[tag],anchor_indices[anchors[i]]] = dists[i]
 
-        self.readings_pub.publish(self.readings.tolist())
+        self.readings_pub.publish(Float32MultiArray(data=self.readings.flatten().tolist()))
         tag_mins = np.min(self.readings,axis=1)
         tag_ind = np.argpartition(tag_mins,2)[:2]
         calc_readings = [0,0,0,0]
