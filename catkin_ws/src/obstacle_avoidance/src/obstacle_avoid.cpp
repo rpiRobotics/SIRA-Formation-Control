@@ -30,6 +30,7 @@ private:
 	tf::TransformListener tf_listener;
 
 	// Constants
+	const double SELF_DETECT_ZONE = 0.1;
 	const double STOP_ZONE = 0.25;
 	const double SLOW_ZONE = 1.0;
 	const double REBOUND_ZONE = 0.15;
@@ -83,29 +84,34 @@ private:
 		return angle;
 	}
 
+	int getMinIndex() {
+		auto min_it = std::min_element(distances.begin(), distances.end());
+		return std::distance(distances.begin(), min_it);
+	}
+
     int needStop() {
         if (distances.empty()) return -1;
-        auto min_it = std::min_element(distances.begin(), distances.end());
-        if (*min_it <= STOP_ZONE) {
-            return std::distance(distances.begin(), min_it);
+        int min_index = getMinIndex();
+        if (distances[min_index] <= STOP_ZONE && distances[min_index] > SELF_DETECT_ZONE) {
+            return min_index;
         }
         return -1;
     }
 	
 	int needSlow() {
         if (distances.empty()) return -1;
-        auto min_it = std::min_element(distances.begin(), distances.end());
-        if (*min_it <= SLOW_ZONE) {
-            return std::distance(distances.begin(), min_it);
+        int min_index = getMinIndex();
+        if (distances[min_index] <= SLOW_ZONE) {
+            return min_index;
         }
         return -1;
     }
 
 	int needRebound() {
-        if (distances.empty()) return -1;
-        auto min_it = std::min_element(distances.begin(), distances.end());
-        if (*min_it <= REBOUND_ZONE) {
-            return std::distance(distances.begin(), min_it);
+         if (distances.empty()) return -1;
+        int min_index = getMinIndex();
+        if (distances[min_index] <= REBOUND_ZONE) {
+            return min_index;
         }
         return -1;
     }
@@ -152,9 +158,6 @@ public:
 
 			distances.push_back(distance);
 			angles.push_back(angle);
-
-			// Publish distances to see if outliers
-			ROS_INFO ("Circle Distance: %f", distance);
 		}
 		
 		// Process Segements
@@ -179,9 +182,6 @@ public:
 
 			distances.push_back(distance);
 			angles.push_back(angle);
-
-			// Publish distances to see if outliers
-			ROS_INFO ("Segment Distance: %f", distance);
 		}
 
         std_msgs::Bool allow;
@@ -219,6 +219,9 @@ public:
             angle_interrupt.publish(angle_msg);
         }
         velocity_interrupt.publish(allow);
+
+		double min_distance = distances[getMinIndex()];
+		ROS_INFO("***------------***\nThe distance to the closest obstacle is: %f", min_distance);
 	}
 };
 

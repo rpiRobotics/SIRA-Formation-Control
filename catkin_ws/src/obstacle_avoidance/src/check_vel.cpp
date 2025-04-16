@@ -65,9 +65,11 @@ public:
         
         if (is_allowed && validVelocity(msg->linear.x, msg->linear.y, msg->angular.z)) {
             vel_pub.publish(last_vel);
+            ROS_INFO("Obstacles are too close: STOPPED\n");
         } else {
             geometry_msgs::Twist zero_vel;
             vel_pub.publish(zero_vel);
+            ROS_INFO("Obstacles are safe: NORMAL\n");
         }
     }
 
