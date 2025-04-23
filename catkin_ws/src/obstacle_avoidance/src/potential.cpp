@@ -21,11 +21,11 @@
 
 // Constants
 const double GOAL_X = 3.0;
-const double GOAL_Y = -2.0;
+const double GOAL_Y = 0.0;
 const double SIRA_RADIUS = 0.6225851;
-const double CONST1 = 0.1;
+const double CONST1 = 5;
 const double CONST2 = 0.1;
-const int GRID_SIZE = 80;
+const int GRID_SIZE = 100;
 
 class Gradient {
 public:
@@ -76,7 +76,10 @@ public:
         double dx = x2 - x1;
         double dy = y2 - y1;
         double t = ((x0 - x1)*dx + (y0 - y1)*dy)/(pow(dy, 2) + pow(dx, 2));
-        return t;
+
+        // Clamp t between 0 and 1 to stay within segment bounds
+        return std::max(0.0, std::min(1.0, t));
+        // return t;
     }
 
     double getdx (double x_in, double y_in) {
@@ -109,6 +112,9 @@ private:
 	// Vectors & Arrays
     std::vector<My_Circle> circles_detected;
     std::vector<My_Segment> segments_detected;
+    std::vector<double> x_coord;
+    std::vector<double> y_coord;
+    std::vector<Gradient> directions; 
 
     double potential[GRID_SIZE][GRID_SIZE];
     Gradient grad[GRID_SIZE][GRID_SIZE];
@@ -138,8 +144,8 @@ private:
 
 
     double getAttractivePotential (double x_point, double y_point) {              
-        double x_diff = x_point - GOAL_X;
-        double y_diff = y_point - GOAL_Y;
+        double x_diff = GOAL_X -  x_point;
+        double y_diff = GOAL_Y - y_point;
         double temp = pow(x_diff, 2) + pow(y_diff,2);
         return 0.5*CONST1*temp;
     }
@@ -148,19 +154,26 @@ private:
         double potential_sum = 0.0;
         for (int i = 0; i < circles_detected.size(); i++) {
             My_Circle temp = circles_detected[i];
-            double temp_repulsive_pot = CONST2/temp.getValue(x_point, y_point);
+            double temp_dist = temp.getValue(x_point, y_point);
+            if (sqrt(temp_dist) < 0.25) { temp_dist = 0.5;}
+            double temp_repulsive_pot = CONST2/temp_dist;
             potential_sum += temp_repulsive_pot;
         }
 
         for (int i = 0; i < segments_detected.size(); i++) {
             My_Segment temp = segments_detected[i];
-            double temp_repulsive_pot = CONST2/temp.getValue(x_point, y_point);
+            double temp_dist = temp.getValue(x_point, y_point);
+            if (sqrt(temp_dist) < 0.25) { temp_dist = 0.5;}
+            double temp_repulsive_pot = CONST2/temp_dist;
             potential_sum += temp_repulsive_pot;
         }
         return potential_sum;
     }
 
     Gradient getRepulsiveGradient (double x_point, double y_point) {
+        const double INFLUENCE_RADIUS = 1.5;
+        const double DECAY_RATE = 2.0;
+
         double x_sum = 0;
         double y_sum = 0;
 
@@ -168,10 +181,20 @@ private:
             My_Circle temp = circles_detected[i];
             double dx = temp.getdx(x_point);
             double dy = temp.getdy(y_point);
-            double val = pow((pow(dx, 2) + pow(dy, 2)), 2);
+            double val = pow((pow(dx, 2) + pow(dy, 2) + 1e-6), 2);
 
-            double repulsive_x_grad = (-2.0*CONST2*dx)/val;
-            double repulsive_y_grad = (-2.0*CONST2*dy)/val;
+            double distance = sqrt(pow(dx, 2) + pow(dy, 2));
+            double repulsive_x_grad = 0;
+            double repulsive_y_grad = 0;
+
+            if (distance < INFLUENCE_RADIUS) {
+                double factor = (1.0 - distance/INFLUENCE_RADIUS);
+                // repulsive_x_grad = (-2.0*CONST2*dx)/val;
+                repulsive_x_grad = -2.0*CONST2*dx*factor*factor*exp(-DECAY_RATE*distance);
+                // repulsive_y_grad = (-2.0*CONST2*dy)/val;    
+                repulsive_y_grad = -2.0*CONST2*dy*factor*factor*exp(-DECAY_RATE*distance);            
+            }
+
 
             x_sum += repulsive_x_grad;
             y_sum += repulsive_y_grad;
@@ -183,8 +206,19 @@ private:
             double dy = temp.getdy(x_point, y_point);
             double val = pow((pow(dx, 2) + pow(dy, 2)), 2);
 
-            double repulsive_x_grad = (-2.0*CONST2*dx)/val;
-            double repulsive_y_grad = (-2.0*CONST2*dy)/val;
+            double distance = sqrt(pow(dx, 2) + pow(dy, 2));
+            double repulsive_x_grad = 0;
+            double repulsive_y_grad = 0;
+
+            if (distance < INFLUENCE_RADIUS) {
+                double factor = (1.0 - distance/INFLUENCE_RADIUS);
+                // repulsive_x_grad = (-2.0*CONST2*dx)/val;
+                repulsive_x_grad = -2.0*CONST2*dx*factor*factor*exp(-DECAY_RATE*distance)/val;
+                // repulsive_y_grad = (-2.0*CONST2*dy)/val;    
+                repulsive_y_grad = -2.0*CONST2*dy*factor*factor*exp(-DECAY_RATE*distance)/val;   
+
+                //ROS_INFO ("x, y, factor, dx, dy, other: %f, %f, %f, %f, %f, %f", repulsive_x_grad, repulsive_y_grad, factor, dx, dy, exp(-DECAY_RATE*distance));         
+            }
 
             x_sum += repulsive_x_grad;
             y_sum += repulsive_y_grad;
@@ -195,6 +229,10 @@ private:
     }
 
     void getPotentialAndGradient () {
+        double prev_grad_x = 0;
+        double prev_grad_y = 0;
+        const double DAMPING = 0.3;
+
         for (int i = 0; i < GRID_SIZE; i++) {
             for (int j = 0; j < GRID_SIZE; j++) {
                 double x_point = (i - (GRID_SIZE*0.5))*0.1;
@@ -204,14 +242,23 @@ private:
                 double current_repulsive_pot = getRepulsivePotential(x_point, y_point);
 
                 potential[i][j] = current_attractive_pot + current_repulsive_pot;
-
                 Gradient rep_temp = getRepulsiveGradient(x_point, y_point);
 
-                double grad_x = (GOAL_X - x_point)*CONST1 + rep_temp.x;
-                double grad_y = (GOAL_Y - y_point)*CONST2 + rep_temp.y;
+                double grad_x = (GOAL_X - x_point)*CONST1 + rep_temp.x + DAMPING*prev_grad_x;
+                double grad_y = (GOAL_Y - y_point)*CONST1 + rep_temp.y + DAMPING*prev_grad_y;
 
+                //ROS_INFO ("x total; y total: %f; %f", rep_temp.x, rep_temp.y);
+
+                double magnitude = sqrt(pow(grad_x, 2) + pow(grad_y, 2)) + 1e-6;
+                grad_x /= magnitude;
+                grad_y /= magnitude;
+
+                //ROS_INFO ("magnitude, grad_x, grad_y: %f, %f, %f", magnitude, grad_x, grad_y);
                 Gradient temp(grad_x, grad_y);
                 grad[i][j] = temp;
+
+                prev_grad_x = grad_x;
+                prev_grad_y = grad_y;
             }
         }
     }
@@ -222,7 +269,8 @@ private:
         
         // Add header
         csvFile << "x,y,potential,gradient_x,gradient_y" << std::endl;
-        
+        //csvFile << "x,y,potential,gradient_x,gradient_y,xp,yp,gradient_xp,gradient_yp" << std::endl;
+
         // Write data
         for (int i = 0; i < GRID_SIZE; i++) {
             for (int j = 0; j < GRID_SIZE; j++) {
@@ -234,7 +282,8 @@ private:
                         << y_point << ","
                         << potential[i][j] << ","
                         << grad[i][j].x << ","
-                        << grad[i][j].y << std::endl;
+                        << grad[i][j].y << std::endl
+                        ;
             }
         }
         

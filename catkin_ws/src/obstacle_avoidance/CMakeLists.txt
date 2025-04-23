@@ -56,10 +56,23 @@ add_dependencies(check_vel ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED
 
 add_executable(lidar_base_static_tf_pub src/lidar_base_static_tf_pub.cpp)
 target_link_libraries(lidar_base_static_tf_pub ${catkin_LIBRARIES})
-add_dependencies(check_vel ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(lidar_base_static_tf_pub ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Fourth Executable
 
 add_executable(potential src/potential.cpp)
 target_link_libraries(potential ${catkin_LIBRARIES})
-add_dependencies(check_vel ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(potential ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+## Fifth Executable
+
+add_executable(routing src/routing.cpp)
+target_link_libraries(routing ${catkin_LIBRARIES})
+add_dependencies(routing ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+
+## Sixth Executable
+
+add_executable(simulating_route src/simulating_route.cpp)
+target_link_libraries(simulating_route ${catkin_LIBRARIES})
+add_dependencies(simulating_route ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
